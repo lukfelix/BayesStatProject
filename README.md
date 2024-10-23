@@ -14,6 +14,6 @@ and Lukas Felix
 [View-only link to the report on Overleaf](https://www.overleaf.com/read/kmzwjsrvgrmv#078b9e)
 
 All necessary packages can be installed e.g. with pip using:
-'''
-pip install numpy matplotlib emcee batman-package corner
-'''
+```
+pip install numpy matplotlib emcee batman-package corner tqdm
+```
