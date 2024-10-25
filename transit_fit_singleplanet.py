@@ -173,9 +173,17 @@ def do_mcmc(time, data, err, theta0, var_names, n_steps=1000, n_walkers=64, frac
     ndim = len(theta0)
     sampler = emcee.EnsembleSampler(n_walkers, ndim, log_probability, args=(time, data, err))
     
+    # generate walkers based off priors where possible
+    pos = np.zeros((n_walkers, ndim))
+    for i, param in enumerate(param_priors):
+        if param_priors[param][0]=='uni':
+            pos[:, i] = np.random.uniform(param_priors[param][1], param_priors[param][2], n_walkers)
+        elif param_priors[param][0]=='gauss':
+            pos[:, i] = np.random.normal(param_priors[param][1], param_priors[param][2], n_walkers)
+        else:
+            pos[:, i] = theta0[i] + 1e-3 * np.random.randn(n_walkers)
+            
     # Run the sampler
-    pos = theta0 + walker_noise * np.random.randn(n_walkers, ndim)
-    
     sampler.run_mcmc(pos, n_steps, progress=True)
     
     # Get the samples
