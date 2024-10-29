@@ -13,7 +13,7 @@ params.inc = 90                       # orbital inclination in degrees
 params.ecc = 0                        # eccentricity
 params.w = 90                         # longitude of periastron (in degrees)
 params.u = []                         # limb-darkening coefficients (no limb-darkening)
-params.limb_dark = "uniform""           # limb-darkening model
+params.limb_dark = "uniform"          # limb-darkening model
 
 
 # Generate time array for the simulation
