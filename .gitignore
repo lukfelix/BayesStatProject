@@ -1,3 +1,5 @@
 outputs/plots/param*
 
 *.pyc
+
+__pycache__/
