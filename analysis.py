@@ -1,6 +1,6 @@
 #%%
 
-# Importing necessary libraries
+# Import necessary libraries
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -10,24 +10,27 @@ import corner
 import pathlib
 import os
 
-# Importing predefined functions from other files
-from simulation_functions import *
-from mcmc_functions import *
-
-
-################################################################################
-##################### SIMULATING TRANSIT LIGHT CURVES ##########################
-################################################################################
+# Import predefined functions from other files
+from simulation_functions import *          # functions for simulating the light curve
+from model_functions import *               # functions for evaluation of the model
+from mcmc_functions import *                # functions used for the MCMC analysis
 
 #%%
+################################################################################
+#################### SIMULATING TRANSIT LIGHT CURVE(S) #########################
+################################################################################
 
-# Define & initialize the parameters for the light curve simulation
 
-# TRUE VALUES
-P_S_ratio = 0.1                     # planet-to-star radius ratio = planet radius (in units of stellar radii)
-u = [0, 0]                          # limb-darkening coefficients: u1, u2 (no limb-darkening)
+################### Step 1 - Initialize Model Parameters #######################
 
-# FIXED VALUES
+# Define & initialize the parameters for the light curve simulation. Based on the parameters of the paper
+# TODO: Double check if these parameters are correct from the paper
+
+# TRUE VALUES (those are the parameters we want to estimate with MCMC)
+ps = 0.1                            # planet-to-star radius ratio = planet radius (in units of stellar radii)
+u = [0, 0]                          # limb-darkening coefficients: u1, u2 (no limb-darkening = [0, 0])
+
+# FIXED VALUES (those are the parameters we assume to be known)
 t0 = 0                              # time of inferior conjunction
 period = 1                          # orbital period (in days)
 a = 4                               # semi-major axis in stellar radii
@@ -40,44 +43,57 @@ n_points = 1000                     # number of points in the light curve
 t_min = -0.25                       # minimum time in days
 t_max = 0.25                        # maximum time in days
 
-# Initialize the parameters according to match the syntax of the batman package
-params, t_array = initialize_parameters(t0, period, P_S_ratio, a, inc, ecc, omega, u, limb_dark_model, n_points, t_min, t_max)
+# Initialize the parameters accordingly, to match the "syntax" of the batman package
+params, t_array = initialize_parameters(t0, period, ps, a, inc, ecc, omega, u, limb_dark_model, n_points, t_min, t_max)
 
 # Define the different errors that can be used in the light curve simulation
-err_1000_ppm = 1000                  # 1000 ppm value for the error
-err_100_ppm = 100                    # 100 ppm value for the error
-err_10_ppm = 10                      # 10 ppm value for the error
 err_1_ppm = 1                        # 1 ppm value for the error
+err_10_ppm = 10                      # 10 ppm value for the error
+err_100_ppm = 100                    # 100 ppm value for the error
+err_1000_ppm = 1000                  # 1000 ppm value for the error
 
 #%%
+################ Step 2 - Create Model & Simulate Light Curve ##################
 
-# Initialize the batman model 
-ncpu = 1 # number of cores available for batman, set to 1 if you either want to be slow or don't have openMP
+# Initialize the batman model using the parameters from above
+ncpu = 1 # number of cores available for batman (set to 1 if you either want to be slow or don't have openMP)
 model = batman.TransitModel(params, t_array, nthreads = int(ncpu))    #initializes model for the simulation
-
-#%%
 
 # Generate data
 flux_data = simulate_light_curve(model, params)         # Simulate the light curve using the batman model and the parameters to generate the data
 time_data = t_array                                     # Time array for the simulation
 
-# Define the (half-) error envelopes for the light curve ranging from 1-1000 ppm. Half because we want the error to be symmetric around the flux_data
-err_1000_data = (err_1000_ppm / 1000000) * flux_data         # error envelope for 1000 ppm
-err_100_data = (err_100_ppm / 1000000) * flux_data           # error envelope for 100 ppm
-err_10_data = (err_10_ppm / 1000000) * flux_data             # error envelope for 10 ppm
-err_1_data = (err_1_ppm / 1000000) * flux_data               # error envelope for 1 ppm
+# Define the (half-) error envelopes for the light curve ranging from 1-1000 ppm & store them in a dictionary. Half because we want the error to be symmetric around the flux_data
+all_errors_dict = {
+    "1 ppm":    (err_1_ppm    / 1000000) * flux_data,       # error envelope for 1 ppm
+    "10 ppm":   (err_10_ppm   / 1000000) * flux_data,       # error envelope for 10 ppm
+    "100 ppm":  (err_100_ppm  / 1000000) * flux_data,       # error envelope for 100 ppm, 
+    "1000 ppm": (err_1000_ppm / 1000000) * flux_data,       # error envelope for 1000 ppm
+    }  
 
+# TODO: implement a way to save the data under "outputs/data". Best to probably use numpy's "np.save" and "np.load" to save, resp. load the data
+
+#%%
+##################### Step 3 - Plot & Save Light Curve #######################
+
+# Plot the simulated light curve. This is the light curve we assume to be the true data. The error envelopes represent our "observed" data
+fig, ax = plot_single_light_curve(flux_data, time_data, all_errors_dict, plt_size=(15, 8))
+
+# Save the light curve plot
+light_curve_plot_name = "outputs/plots/light_curve_plot_sim"
+#TODO change naming above to match all the model parameters (not very important)
+if not os.path.exists(light_curve_plot_name):
+    fig.savefig(light_curve_plot_name, dpi=300)
 
 #%%
 
-# Plot a single light curve
-all_errors_dict = {"1 ppm": err_1_data, "10 ppm": err_10_data, "100 ppm": err_100_data, "1000 ppm": err_1000_data} # Dictionary containing all the error data
-plot_single_light_curve(flux_data, time_data, all_errors_dict, plt_size=(15, 8))
-
-
-#%%
 # For the remainder, we choose the 1000 ppm error envelope to be the error data
-error_data = err_1000_data
+# TODO change code below to allow to do MCMC for all 4 error cases
+
+error_data = all_errors_dict['1000 ppm']
+# error_data = all_errors_dict['100 ppm']
+# error_data = all_errors_dict['10 ppm']
+# error_data = all_errors_dict['1 ppm']
 
 #%%
 
@@ -86,7 +102,7 @@ error_data = err_1000_data
 ################################################################################
 
 # Our goal is to estimate the parameters of the model that best fit the data.
-# The parameters we want to esimate are: P_S_ratio, u1 and u2. 
+# The parameters we want to esimate are (for the moment): 'ps', 'u1' and 'u2'. 
 
 # 1. ** Define the Model **:                Set up the physical model that you will fit to the data. This involves specifying the transit light curve model with the parameters you wish to estimate. We already did this through the batman model.
 # 2. ** Choose Priors **:                   Define prior distributions for each parameter. Priors represent your beliefs about the parameters before seeing the data.
@@ -95,20 +111,22 @@ error_data = err_1000_data
 # 5. ** Run the MCMC Sampler **:            Execute the chains to explore the parameter space. The sampler will generate a sequence of samples for each parameter.
 # 6. ** Analyze the Results **:             After the MCMC run, analyze the chains for convergence, discard the burn-in phase, and use the remaining samples to compute the posterior distributions and statistics (mean, median, confidence intervals) for each parameter.
 
-'''
-1. Define the Model 
-'''
-# DONE (see above)
+# TODO: Check that everything is correct --> play with the priors a bit, see what happens
 
-'''
-2. Choose Priors:
-'''
+######################## Step 1 - Define the model #############################
+
+# DONE (see above), here just as recap:
+model = model
+params = params
+
+######################### Step 2 - Choose Priors ###############################
+
 # convention:
 # [uniform, lower bound, upper bound]
 # [gauss, mean, sigma]
 param_priors = {
     # TODO: adapt these depending on simdata
-    'P_S_ratio': ['uni', 0., 0.5],      # stellar radii
+    'ps':        ['uni', 0., 0.5],      # stellar radii
     'u1':        ['uni', -3., 3],     # limb darkening
     'u2':        ['uni', -3., 3.],     # limb darkening
     # 't0':        ['uni', t_0+0.9,  t_0+1.1], # days
@@ -119,18 +137,17 @@ param_priors = {
     # 'v':         ['gauss', 0, 1e3],    # allow for slope !=0 in time (dy/dt), needs a gaussian prior to converge consistently
     }
 
-'''
-3. Set Up the Likelihood Functions
-'''
+#################### Step 3 - Set Up the Likelihood Function #####################
 
+# p(D|theta)
 def log_likelihood(theta, t, y, yerr):
-    model_prediction = full_model(t, theta)
-
+    model_prediction = full_model(theta, params, model)
     return -0.5 * np.sum(((y - model_prediction) / yerr) ** 2)
 
+# p(theta)
 def log_prior(theta):
     """
-    evaluate priors for given paramter theta, looks unusual due to dict structure of priors above
+    evaluate priors for given paramter theta, looks unusual due to dictionary structure of priors above
     """
     lp = 0.
     for val, prior in zip(theta, param_priors):
@@ -149,8 +166,9 @@ def log_prior(theta):
             lp += ret
     return lp
 
-# Define the probability function as likelihood * prior ('+' due to log).
-def log_probability(theta, t, y, yerr):
+# Define the final probability function as likelihood * prior ('+' due to log).
+# p(theta|D) = p(D|theta) * p(theta)
+def log_posterior(theta, t, y, yerr):
     lp = log_prior(theta)
     if not np.isfinite(lp):
         return -np.inf
@@ -158,11 +176,14 @@ def log_probability(theta, t, y, yerr):
     return lp + log_likelihood(theta, t, y, yerr)
 
 #%%
-'''
-4. Initialize the MCMC Sampler
-'''
+##################### Step 4 - Initialize the MCMC Sampler #######################
+
 # MCMC parameters
-ndim, nwalkers, nsteps, burn_in_frac = len(param_priors), 32, 10000, 0.4
+# TODO adapt these to the specific problem
+ndim            =   len(param_priors)
+nwalkers        =   32
+nsteps          =   10000
+burn_in_frac    =   0.4
 
 # Initialize the walkers
 pos = np.zeros((nwalkers, ndim))
@@ -175,14 +196,12 @@ for i, param in enumerate(param_priors):
         print('prior not recognized')
         break
 
-# Initialize the sampler
-sampler = emcee.EnsembleSampler(nwalkers, ndim, log_likelihood, args=(time_data, flux_data, error_data))
-
+# Initialize the sampler (at the moment time_data is not being used, see "model_functions.py/full_model()" )
+sampler = emcee.EnsembleSampler(nwalkers, ndim, log_posterior, args=(time_data, flux_data, error_data))
 
 #%%
-'''
-5. Run the MCMC Sampler
-'''
+####################### Step 5 - Run the MCMC Sampler ############################
+
 # Run the sampler
 sampler.run_mcmc(pos, nsteps, progress=True)
 
@@ -192,24 +211,47 @@ samples = sampler.get_chain(discard=int(burn_in_frac * nsteps))     # discard th
 # TODO: save samples in some format for more flexible plotting and post-processing
 
 #%%
-'''
-6. Analyze the Results
-'''
-# Flatten the samples
-flattened_samples = samples.reshape(-1, len(param_priors))  # flatten the samples in order to plot them
+####################### Step 6 - Analyze the Results ############################
 
+# Flatten the samples (remove the walkers)
+flattened_samples = samples.reshape(-1, len(param_priors))  # flatten the samples for plotting
+
+# print(flattened_samples.shape)
+
+#%%
 # Plot the corner plot
-fig = corner.corner(flattened_samples, labels=param_priors.keys(), truths=[P_S_ratio, u[0], u[1]], show_titles=True)
-plt.show()
+
+fig = corner.corner(
+
+    flattened_samples, 
+    title_fmt='.5f',
+    bins=50,
+    show_titles=True,
+    labels=[r"$P_S$", r"$u_1$", r"$u_2$"], 
+    truths=[ps, u[0], u[1]],
+    plot_density=True,
+    plot_datapoints=True,
+    fill_contours=False,
+    smooth=True,
+    levels=(0.6827, 0.90, 0.9545),              # shows the 1, 1.5 and 2 sigma contours in the 2D plots
+    quantiles=[0.16, 0.5, 0.84],                # shows the 1 sigma interval in the 1D plots
+    title_kwargs={"fontsize": 10},
+    truth_color='cornflowerblue',
+
+);
+#%%
+# Save the corner plot
+corner_plot_name = "outputs/plots/corner_plot_%.0fparameters_%.0fppm_no_linear_model" % (len(param_priors), err_1000_ppm )
+
+if not os.path.exists(corner_plot_name):
+    fig.savefig(corner_plot_name, dpi=300)
+
+#%%
+
+# TODO: Implement further statistics & plots, e.g. galman-rubin, autocorrelation, etc. to check for convergence
 
 
-
-
-
-
-
-
-
+#%%
 
 
 

@@ -79,5 +79,7 @@ def plot_single_light_curve(flux_data, time_data, all_errors_dic, plt_size=(10, 
 
     plt.show()
 
+    return fig, ax
+
 
 

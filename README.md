@@ -17,3 +17,9 @@ All necessary packages can be installed e.g. with pip using:
 ```
 pip install numpy matplotlib emcee batman-package corner tqdm
 ```
+
+# FILESTRUCTURE
+
+"analysis.py" contains the entire analysis, from simulation, to modelling, all the way to mcmc. It is the "mother file". 
+
+The other files contain certain functions which are being used via the analysis.py file. Those are all the "children files" and do not perform anything on their own. They are simply placeholders for certain functions. 
