@@ -50,11 +50,6 @@ fixed_params = {
 # Initialize the parameters accordingly, to match the "syntax" of the batman package
 params, t_array = initialize_parameters(truths, fixed_params)
 
-# Define the different errors that can be used in the light curve simulation
-err_1_ppm = 1                        # 1 ppm value for the error
-err_10_ppm = 10                      # 10 ppm value for the error
-err_100_ppm = 100                    # 100 ppm value for the error
-err_1000_ppm = 1000                  # 1000 ppm value for the error
 
 #%%
 ################ Step 2 - Create Model & Simulate Light Curve ##################
@@ -69,10 +64,10 @@ time_data = t_array                                     # Time array for the sim
 
 # Define the (half-) error envelopes for the light curve ranging from 1-1000 ppm & store them in a dictionary. Half because we want the error to be symmetric around the flux_data
 all_errors_dict = {
-    "1 ppm":    (err_1_ppm    / 1000000) * flux_data,       # error envelope for 1 ppm
-    "10 ppm":   (err_10_ppm   / 1000000) * flux_data,       # error envelope for 10 ppm
-    "100 ppm":  (err_100_ppm  / 1000000) * flux_data,       # error envelope for 100 ppm, 
-    "1000 ppm": (err_1000_ppm / 1000000) * flux_data,       # error envelope for 1000 ppm
+    "1 ppm":    (1    / 1e6) * flux_data,       # error envelope for 1 ppm
+    "10 ppm":   (10   / 1e6) * flux_data,       # error envelope for 10 ppm
+    "100 ppm":  (100  / 1e6) * flux_data,       # error envelope for 100 ppm, 
+    "1000 ppm": (1000 / 1e6) * flux_data,       # error envelope for 1000 ppm
     }  
 
 # TODO: implement a way to save the data under "outputs/data". Best to probably use numpy's "np.save" and "np.load" to save, resp. load the data
@@ -242,10 +237,10 @@ fig = corner.corner(
     title_kwargs={"fontsize": 10},
     truth_color='cornflowerblue',
 
-);
+)
 #%%
 # Save the corner plot
-corner_plot_name = "outputs/plots/corner_plot_%.0fparameters_%.0fppm_no_linear_model" % (len(param_priors), err_1000_ppm )
+corner_plot_name = "outputs/plots/corner_plot_%.0fparameters_%.0fppm_no_linear_model" % (len(param_priors), all_errors_dict['1000 ppm'][0]*1e6)
 
 if not os.path.exists(corner_plot_name):
     fig.savefig(corner_plot_name, dpi=300)

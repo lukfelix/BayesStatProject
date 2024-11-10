@@ -61,7 +61,7 @@ def plot_single_light_curve(flux_data, time_data, all_errors_dic, plt_size=(10, 
     fig, ax = plt.subplots(figsize=plt_size)
     ax.plot(time_data, flux_data, color='black', label="Simulated Light Curve", lw=0.5)  # plot the simulated light curve
     for i, (key, error) in enumerate(all_errors_dic.items()):
-        ax.fill_between(time_data, flux_data - error/2, flux_data + error/2, alpha=alpha_values[i], label=key, color='forestgreen')
+        ax.fill_between(time_data, flux_data - error, flux_data + error, alpha=alpha_values[i], label=key, color='forestgreen')
 
     ax.set_xlabel("Time from Mid-Transit (days)")
     ax.set_ylabel("Relative Flux")
@@ -73,10 +73,10 @@ def plot_single_light_curve(flux_data, time_data, all_errors_dic, plt_size=(10, 
     axins = inset_axes(ax, width="30%", height="30%", loc='lower right', borderpad=2)
     axins.plot(time_data, flux_data, color='black', lw=0.5)
     for i, (key, error) in enumerate(all_errors_dic.items()):
-        axins.fill_between(time_data, flux_data - error/2, flux_data + error/2, alpha=alpha_values[i], color='forestgreen')
+        axins.fill_between(time_data, flux_data - error, flux_data + error, alpha=alpha_values[i], color='forestgreen')
 
     axins.set_xlim(-zoom_range, zoom_range)
-    axins.set_ylim(min(flux_data)-0.0007, min(flux_data)+0.0007)  # Set y-limits; adjust the factor as needed
+    axins.set_ylim(min(flux_data)-0.0012, min(flux_data)+0.0012)  # Set y-limits; adjust the factor as needed
     axins.set_title("Zoom at Transit")
 
     plt.show()
