@@ -85,16 +85,6 @@ if not os.path.exists(light_curve_plot_name):
 
 #%%
 
-# For the remainder, we choose the 1000 ppm error envelope to be the error data
-# TODO change code below to allow to do MCMC for all 4 error cases
-
-error_data = all_errors_dict['1000 ppm']
-# error_data = all_errors_dict['100 ppm']
-# error_data = all_errors_dict['10 ppm']
-# error_data = all_errors_dict['1 ppm']
-
-#%%
-
 ################################################################################
 ######################### FITTING DATA TO A MODEL ##############################
 ################################################################################
@@ -120,12 +110,15 @@ param_priors = {
 # TODO: just a working selection right now, could probably be improved
 mcmc_params = {
     'ndim'        :len(param_priors),
-    'nwalkers'    :32,
-    'nsteps'      :10000,
-    'burn_in_frac':0.4,
+    'nwalkers'    :4*len(param_priors),
+    'nsteps'      :100000,
+    'burn_in_frac':0.6,
 }
 
 #%%
+################################################################################
+######################### Run Quadratic Limb-Drkening ##########################
+################################################################################
 for key in all_errors_dict:
     # iterate through all available error envelopes for the default quadratic parameterization
     posterior_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
@@ -136,7 +129,11 @@ for key in all_errors_dict:
     create_corner_plot(posterior_samples, truths, all_errors_dict[key][0]*1e6, transform=False)
 
 #%%
+################################################################################
+######################### Run Kipping Limb-Drkening ############################
+################################################################################
 
+# update priors and ground truth to Kipping
 param_priors = {
     # TODO: adapt these depending on simdata
     'ps':        ['uni', 0., 0.5],      # stellar radii
@@ -149,6 +146,7 @@ truths = {
     # TODO: q2 is not actually well defined... need to calculate the limes of 0.5 * u1 / (u1 + u2) for u1 & u2 -> 0, i guess it's 0.25?
     # 
 }
+
 for key in all_errors_dict:
     # iterate through all available error envelopes for the kipping parameterization
     posterior_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
