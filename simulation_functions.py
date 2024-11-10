@@ -3,22 +3,24 @@ import batman
 import matplotlib.pyplot as plt
 
 # Initializes the parameters for the transit simulation with the batman package
-def initialize_parameters(t0, period, P_S_ratio, a, inc, e, omega, u, limb_dark_model, n_points, t_min, t_max):
+def initialize_parameters(truths, fixed):
     
     # Define parameters for the transit simulation
     params = batman.TransitParams()       
-    params.t0 = t0                          # time of inferior conjunction
-    params.per = period                     # orbital period (in days)
-    params.rp = P_S_ratio                   # planet-to-star radius ratio = planet radius (in units of stellar radii)
-    params.a = a                            # semi-major axis in stellar radii
-    params.inc = inc                        # orbital inclination in degrees
-    params.ecc = e                          # eccentricity
-    params.w = omega                        # longitude of periastron (in degrees)
-    params.u = u                            # limb-darkening coefficients (no limb-darkening)
-    params.limb_dark = limb_dark_model      # limb-darkening model
+    params.t0 = fixed['t0']                          # time of inferior conjunction
+    params.per = fixed['period']                     # orbital period (in days)
+    params.rp = truths['ps']                   # planet-to-star radius ratio = planet radius (in units of stellar radii)
+    params.a = fixed['a']                            # semi-major axis in stellar radii
+    params.inc = fixed['inc']                        # orbital inclination in degrees
+    params.ecc = fixed['ecc']                          # eccentricity
+    params.w = fixed['omega']                        # longitude of periastron (in degrees)
+    params.u = truths['u']                            # limb-darkening coefficients (no limb-darkening)
+    params.limb_dark = fixed['limb_dark_model']      # limb-darkening model
 
     # Time array for the simulation
-    t = np.linspace(t_min, t_max, n_points)    # time from t_min to t_max days, n points
+    t = np.linspace(fixed['t_min'], 
+                    fixed['t_max'], 
+                    fixed['n_points'])    # time from t_min to t_max days, n points
 
     return params, t
 

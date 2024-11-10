@@ -27,24 +27,28 @@ from mcmc_functions import *                # functions used for the MCMC analys
 # TODO: Double check if these parameters are correct from the paper
 
 # TRUE VALUES (those are the parameters we want to estimate with MCMC)
-ps = 0.1                            # planet-to-star radius ratio = planet radius (in units of stellar radii)
-u = [0, 0]                          # limb-darkening coefficients: u1, u2 (no limb-darkening = [0, 0])
+truths = {
+    'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
+    'u':[0, 0]                       # limb-darkening coefficients: u1, u2 (no limb-darkening = [0, 0])
+}
 
 # FIXED VALUES (those are the parameters we assume to be known)
-t0 = 0                              # time of inferior conjunction
-period = 1                          # orbital period (in days)
-a = 4                               # semi-major axis in stellar radii
-inc = 90                            # orbital inclination in degrees
-ecc = 0                               # eccentricity
-omega = 90                          # longitude of periastron (in degrees)
-limb_dark_model = "quadratic"       # limb-darkening model
-
-n_points = 1000                     # number of points in the light curve
-t_min = -0.25                       # minimum time in days
-t_max = 0.25                        # maximum time in days
-
+fixed_params = {
+    # orbital parameters:
+    't0':0,                          # time of inferior conjunction
+    'period':1,                      # orbital period (in days)
+    'a':4,                           # semi-major axis in stellar radii
+    'inc':90,                        # orbital inclination in degrees
+    'ecc':0,                         # eccentricity
+    'omega':90,                      # longitude of periastron (in degrees)
+    'limb_dark_model':"quadratic",   # limb-darkening model
+    # simulated observation parameters:
+    'n_points':1000,                 # number of points in the light curve
+    't_min':-0.25,                   # minimum time in days
+    't_max':0.25,                    # maximum time in days
+}
 # Initialize the parameters accordingly, to match the "syntax" of the batman package
-params, t_array = initialize_parameters(t0, period, ps, a, inc, ecc, omega, u, limb_dark_model, n_points, t_min, t_max)
+params, t_array = initialize_parameters(truths, fixed_params)
 
 # Define the different errors that can be used in the light curve simulation
 err_1_ppm = 1                        # 1 ppm value for the error
@@ -228,7 +232,7 @@ fig = corner.corner(
     bins=50,
     show_titles=True,
     labels=[r"$P_S$", r"$u_1$", r"$u_2$"], 
-    truths=[ps, u[0], u[1]],
+    truths=[truths['ps'], truths['u'][0], truths['u'][1]],
     plot_density=True,
     plot_datapoints=True,
     fill_contours=False,
