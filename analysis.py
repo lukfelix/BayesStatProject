@@ -126,13 +126,37 @@ mcmc_params = {
 }
 
 #%%
+for key in all_errors_dict:
+    # iterate through all available error envelopes for the default quadratic parameterization
+    posterior_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
+                                params, param_priors, mcmc_params,
+                                transform=False)
 
-posterior_samples = run_mcmc(time_data, flux_data, error_data, model,
-                            params, param_priors, mcmc_params,
-                            transform=False)
+    # Plot the corner plot
+    create_corner_plot(posterior_samples, truths, all_errors_dict[key][0]*1e6, transform=False)
 
-# Plot the corner plot
-create_corner_plot(posterior_samples, truths, all_errors_dict['1000 ppm'][0]*1e6, transform=False)
+#%%
+
+param_priors = {
+    # TODO: adapt these depending on simdata
+    'ps':        ['uni', 0., 0.5],      # stellar radii
+    'u1':        ['uni', 0., 1.],     # limb darkening
+    'u2':        ['uni', 0., 1.],     # limb darkening
+}
+truths = {
+    'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
+    'u':[0, None]                    # limb-darkening coefficients: q1, q2 (no limb-darkening = [0, ?])
+    # TODO: q2 is not actually well defined... need to calculate the limes of 0.5 * u1 / (u1 + u2) for u1 & u2 -> 0, i guess it's 0.25?
+    # 
+}
+for key in all_errors_dict:
+    # iterate through all available error envelopes for the kipping parameterization
+    posterior_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
+                                params, param_priors, mcmc_params,
+                                transform=True)
+
+    # Plot the corner plot
+    create_corner_plot(posterior_samples, truths, all_errors_dict[key][0]*1e6, transform=True)
 
 #%%
 
