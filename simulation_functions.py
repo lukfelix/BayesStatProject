@@ -3,22 +3,24 @@ import batman
 import matplotlib.pyplot as plt
 
 # Initializes the parameters for the transit simulation with the batman package
-def initialize_parameters(t0, period, P_S_ratio, a, inc, e, omega, u, limb_dark_model, n_points, t_min, t_max):
+def initialize_parameters(truths, fixed):
     
     # Define parameters for the transit simulation
     params = batman.TransitParams()       
-    params.t0 = t0                          # time of inferior conjunction
-    params.per = period                     # orbital period (in days)
-    params.rp = P_S_ratio                   # planet-to-star radius ratio = planet radius (in units of stellar radii)
-    params.a = a                            # semi-major axis in stellar radii
-    params.inc = inc                        # orbital inclination in degrees
-    params.ecc = e                          # eccentricity
-    params.w = omega                        # longitude of periastron (in degrees)
-    params.u = u                            # limb-darkening coefficients (no limb-darkening)
-    params.limb_dark = limb_dark_model      # limb-darkening model
+    params.t0 = fixed['t0']                          # time of inferior conjunction
+    params.per = fixed['period']                     # orbital period (in days)
+    params.rp = truths['ps']                   # planet-to-star radius ratio = planet radius (in units of stellar radii)
+    params.a = fixed['a']                            # semi-major axis in stellar radii
+    params.inc = fixed['inc']                        # orbital inclination in degrees
+    params.ecc = fixed['ecc']                          # eccentricity
+    params.w = fixed['omega']                        # longitude of periastron (in degrees)
+    params.u = truths['u']                            # limb-darkening coefficients (no limb-darkening)
+    params.limb_dark = fixed['limb_dark_model']      # limb-darkening model
 
     # Time array for the simulation
-    t = np.linspace(t_min, t_max, n_points)    # time from t_min to t_max days, n points
+    t = np.linspace(fixed['t_min'], 
+                    fixed['t_max'], 
+                    fixed['n_points'])    # time from t_min to t_max days, n points
 
     return params, t
 
@@ -59,7 +61,7 @@ def plot_single_light_curve(flux_data, time_data, all_errors_dic, plt_size=(10, 
     fig, ax = plt.subplots(figsize=plt_size)
     ax.plot(time_data, flux_data, color='black', label="Simulated Light Curve", lw=0.5)  # plot the simulated light curve
     for i, (key, error) in enumerate(all_errors_dic.items()):
-        ax.fill_between(time_data, flux_data - error/2, flux_data + error/2, alpha=alpha_values[i], label=key, color='forestgreen')
+        ax.fill_between(time_data, flux_data - error, flux_data + error, alpha=alpha_values[i], label=key, color='forestgreen')
 
     ax.set_xlabel("Time from Mid-Transit (days)")
     ax.set_ylabel("Relative Flux")
@@ -71,10 +73,10 @@ def plot_single_light_curve(flux_data, time_data, all_errors_dic, plt_size=(10, 
     axins = inset_axes(ax, width="30%", height="30%", loc='lower right', borderpad=2)
     axins.plot(time_data, flux_data, color='black', lw=0.5)
     for i, (key, error) in enumerate(all_errors_dic.items()):
-        axins.fill_between(time_data, flux_data - error/2, flux_data + error/2, alpha=alpha_values[i], color='forestgreen')
+        axins.fill_between(time_data, flux_data - error, flux_data + error, alpha=alpha_values[i], color='forestgreen')
 
     axins.set_xlim(-zoom_range, zoom_range)
-    axins.set_ylim(min(flux_data)-0.0007, min(flux_data)+0.0007)  # Set y-limits; adjust the factor as needed
+    axins.set_ylim(min(flux_data)-0.0012, min(flux_data)+0.0012)  # Set y-limits; adjust the factor as needed
     axins.set_title("Zoom at Transit")
 
     plt.show()

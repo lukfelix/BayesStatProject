@@ -1,4 +1,4 @@
-outputs/plots/param*
+outputs/plots/*.jpg
 
 *.pyc
 
