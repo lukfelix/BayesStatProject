@@ -3,7 +3,7 @@ import emcee
 import corner
 import os
 
-from model_functions import full_model
+from model_functions import full_model, kipping_to_quad
 
 # define some necessary math for priors functions
 def log_uni(x, a, b):
@@ -120,9 +120,9 @@ def create_corner_plot(posterior_samples, truths, errval, transform=False):
         truth_color='cornflowerblue',
     )
     if transform:
-        corner_plot_name = "outputs/plots/corner_plot_kipping_%.0fppm_no_linear_model" % (errval)
+        corner_plot_name = "outputs/plots/corner_plot_kipping_%.0fppm_ld%.2f.png" % (errval, kipping_to_quad(truths['u'][0], truths['u'][1])[0])
     else:
-        corner_plot_name = "outputs/plots/corner_plot_quadratic_%.0fppm_no_linear_model" % (errval)
+        corner_plot_name = "outputs/plots/corner_plot_quadratic_%.0fppm_ld%.2f.png" % (errval, truths['u'][0])
 
     if not os.path.exists(corner_plot_name):
         fig.savefig(corner_plot_name, dpi=300)

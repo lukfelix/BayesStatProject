@@ -65,9 +65,9 @@ time_data = t_array                                     # Time array for the sim
 all_errors_dict = {
     "1 ppm":    (1    / 1e6) * flux_data,       # error envelope for 1 ppm
     "10 ppm":   (10   / 1e6) * flux_data,       # error envelope for 10 ppm
-    "30 ppm":   (30   / 1e6) * flux_data,       # error envelope for 10 ppm
+    "30 ppm":   (30   / 1e6) * flux_data,       # error envelope for 30 ppm
     "100 ppm":  (100  / 1e6) * flux_data,       # error envelope for 100 ppm, 
-    "300 ppm":  (300  / 1e6) * flux_data,       # error envelope for 10 ppm
+    "300 ppm":  (300  / 1e6) * flux_data,       # error envelope for 300 ppm
     "1000 ppm": (1000 / 1e6) * flux_data,       # error envelope for 1000 ppm
     }  
 
@@ -122,6 +122,7 @@ mcmc_params = {
 ######################### Run Quadratic Limb-Drkening ##########################
 ################################################################################
 for key in all_errors_dict:
+    continue
     # iterate through all available error envelopes for the default quadratic parameterization
     posterior_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
                                 params, param_priors, mcmc_params,
@@ -146,6 +147,61 @@ for key in all_errors_dict:
 
     # Plot the corner plot
     create_corner_plot(posterior_samples_kip, truths_kip, all_errors_dict[key][0]*1e6, transform=True)
+
+#%%
+#################### Do all the same steps again, but change the initial limb-darkening
+
+# TRUE VALUES (those are the parameters we want to estimate with MCMC)
+truths_nonzero = {
+    'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
+    'u':[0.05, 0.05]                 # limb-darkening coefficients: u1, u2 (no limb-darkening = [0, 0])
+}
+
+# new initialization of parameters since we change the limb-darkening, other params stay the same
+params_nonzero, t_array = initialize_parameters(truths_nonzero, fixed_params)
+
+# need to recalculate flux and errs but can reuse the model
+flux_data_nonzero = simulate_light_curve(model, params_nonzero)         # Simulate the light curve using the batman model and the parameters to generate the data
+all_errors_dict_nonzero = {
+    "1 ppm":    (1    / 1e6) * flux_data_nonzero,       # error envelope for 1 ppm
+    "10 ppm":   (10   / 1e6) * flux_data_nonzero,       # error envelope for 10 ppm
+    "30 ppm":   (30   / 1e6) * flux_data_nonzero,       # error envelope for 30 ppm
+    "100 ppm":  (100  / 1e6) * flux_data_nonzero,       # error envelope for 100 ppm, 
+    "300 ppm":  (300  / 1e6) * flux_data_nonzero,       # error envelope for 300 ppm
+    "1000 ppm": (1000 / 1e6) * flux_data_nonzero,       # error envelope for 1000 ppm
+    }
+
+# make an additional plot of this too
+fig, ax = plot_single_light_curve(flux_data_nonzero, time_data, all_errors_dict_nonzero, plt_size=(15, 8))
+
+# Save the light curve plot
+light_curve_plot_name = "outputs/plots/light_curve_plot_sim_nonzero"
+#TODO change naming above to match all the model parameters (not very important, only relevant if we actually change them)
+if not os.path.exists(light_curve_plot_name):
+    fig.savefig(light_curve_plot_name, dpi=300)
+
+# priors can stay the same, simply re-run the mcmc:
+# first for the default quadratic parameterization
+for key in all_errors_dict_nonzero:
+    # iterate through all available error envelopes for the default quadratic parameterization
+    posterior_samples = run_mcmc(time_data, flux_data_nonzero, all_errors_dict_nonzero[key], model,
+                                params_nonzero, param_priors, mcmc_params,
+                                transform=False)
+
+    # Plot the corner plot
+    create_corner_plot(posterior_samples, truths_nonzero, all_errors_dict_nonzero[key][0]*1e6, transform=False)
+
+# then update priors and ground truth to Kipping
+truths_kip_nonzero, param_priors_kip = change_to_kipping_run(truths_nonzero, param_priors)
+
+for key in all_errors_dict_nonzero:
+    # iterate through all available error envelopes for the kipping parameterization
+    posterior_samples_kip = run_mcmc(time_data, flux_data_nonzero, all_errors_dict_nonzero[key], model,
+                                    params_nonzero, param_priors_kip, mcmc_params,
+                                    transform=True)
+
+    # Plot the corner plot
+    create_corner_plot(posterior_samples_kip, truths_kip_nonzero, all_errors_dict_nonzero[key][0]*1e6, transform=True)
 
 #%%
 

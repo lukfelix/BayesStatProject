@@ -52,7 +52,7 @@ def simulate_light_curve(model, params):
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 # Function to plot the simulated light curve with a zoomed-in inset
-def plot_single_light_curve(flux_data, time_data, all_errors_dic, plt_size=(10, 5)):
+def plot_single_light_curve(flux_data, time_data, all_errors_dic, plt_size=(10, 5), show=False):
     # Determine the number of keys to scale alpha values
     num_keys = len(all_errors_dic)
     alpha_values = np.linspace(0.8, 0.1, num_keys)  # Scale from 0.9 to 0.1
@@ -78,8 +78,8 @@ def plot_single_light_curve(flux_data, time_data, all_errors_dic, plt_size=(10, 
     axins.set_xlim(-zoom_range, zoom_range)
     axins.set_ylim(min(flux_data)-0.0012, min(flux_data)+0.0012)  # Set y-limits; adjust the factor as needed
     axins.set_title("Zoom at Transit")
-
-    plt.show()
+    if show:
+        plt.show()
 
     return fig, ax
 
