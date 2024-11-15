@@ -109,7 +109,7 @@ param_priors = {
     }
 
 # MCMC parameters
-# TODO:right now these are what they use in the paper, could probably be improved... takes a couple minutes to run 100k steps
+# TODO:right now these are what they use in the paper, could probably be improved... takes me 45s to run 100k steps once.
 mcmc_params = {
     'ndim'        :len(param_priors),
     'nwalkers'    :4*len(param_priors),
@@ -136,20 +136,7 @@ for key in all_errors_dict:
 ################################################################################
 
 # update priors and ground truth to Kipping
-param_priors_kip = {
-    # TODO: adapt these depending on simdata
-    'ps':        ['uni', 0., 0.5],    # stellar radii
-    'u1':        ['uni', 0., 1.],     # limb darkening
-    'u2':        ['uni', 0., 1.],     # limb darkening
-}
-truths_kip = {
-    'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
-    'u':quad_to_kipping(truths['u'][0], 
-                        truths['u'][1])   # limb-darkening coefficients: q1, q2 (transformed from initial quadratic values)
-    # TODO: q2 is not actually well defined... need to calculate the limes of 0.5 * u1 / (u1 + u2) for u1 & u2 -> 0 
-    # but the results diverge depending which parameter you let go to 0 first...
-    # For now this is handled in quad_to_kipping by setting q2=None
-}
+truths_kip, param_priors_kip = change_to_kipping_run(truths, param_priors)
 
 for key in all_errors_dict:
     # iterate through all available error envelopes for the kipping parameterization

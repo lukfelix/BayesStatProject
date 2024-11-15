@@ -30,6 +30,25 @@ def quad_to_kipping(u1, u2):
         q2 = None
     return q1, q2
 
+def change_to_kipping_run(truths, priors):
+    """
+    Returns a new truth and prior dict with changed limb-darkening behaviour.
+    This is simply to ensure that everything is changed consistently and saves some space in the analysis file.
+    """
+    # for priors we only need to change parameterspace
+    priors_kip = priors.copy()
+    priors_kip['u1'] = ['uni', 0., 1.]
+    priors_kip['u2'] = ['uni', 0., 1.]
+    
+    # limb-darkening coefficients q1, q2 are then transformed from initial quadratic values
+    truths_kip = truths.copy()
+    truths_kip['u'] = quad_to_kipping(truths['u'][0], 
+                                      truths['u'][1])
+    # TODO: q2 is not actually well defined... need to calculate the limes of 0.5 * u1 / (u1 + u2) for u1 & u2 -> 0 
+    # but the results diverge depending which parameter you let go to 0 first...
+    # For now this is handled in quad_to_kipping by setting q2=None
+
+    return truths_kip, priors_kip    
 
 def eval_transit(theta, initial_params, model, transform):
     """
