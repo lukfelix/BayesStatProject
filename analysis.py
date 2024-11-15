@@ -65,7 +65,9 @@ time_data = t_array                                     # Time array for the sim
 all_errors_dict = {
     "1 ppm":    (1    / 1e6) * flux_data,       # error envelope for 1 ppm
     "10 ppm":   (10   / 1e6) * flux_data,       # error envelope for 10 ppm
+    "30 ppm":   (30   / 1e6) * flux_data,       # error envelope for 10 ppm
     "100 ppm":  (100  / 1e6) * flux_data,       # error envelope for 100 ppm, 
+    "300 ppm":  (300  / 1e6) * flux_data,       # error envelope for 10 ppm
     "1000 ppm": (1000 / 1e6) * flux_data,       # error envelope for 1000 ppm
     }  
 
@@ -107,7 +109,7 @@ param_priors = {
     }
 
 # MCMC parameters
-# TODO: just a working selection right now, could probably be improved
+# TODO:right now these are what they use in the paper, could probably be improved... takes a couple minutes to run 100k steps
 mcmc_params = {
     'ndim'        :len(param_priors),
     'nwalkers'    :4*len(param_priors),
@@ -134,27 +136,29 @@ for key in all_errors_dict:
 ################################################################################
 
 # update priors and ground truth to Kipping
-param_priors = {
+param_priors_kip = {
     # TODO: adapt these depending on simdata
-    'ps':        ['uni', 0., 0.5],      # stellar radii
+    'ps':        ['uni', 0., 0.5],    # stellar radii
     'u1':        ['uni', 0., 1.],     # limb darkening
     'u2':        ['uni', 0., 1.],     # limb darkening
 }
-truths = {
+truths_kip = {
     'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
-    'u':[0, None]                    # limb-darkening coefficients: q1, q2 (no limb-darkening = [0, ?])
-    # TODO: q2 is not actually well defined... need to calculate the limes of 0.5 * u1 / (u1 + u2) for u1 & u2 -> 0, i guess it's 0.25?
-    # 
+    'u':quad_to_kipping(truths['u'][0], 
+                        truths['u'][1])   # limb-darkening coefficients: q1, q2 (transformed from initial quadratic values)
+    # TODO: q2 is not actually well defined... need to calculate the limes of 0.5 * u1 / (u1 + u2) for u1 & u2 -> 0 
+    # but the results diverge depending which parameter you let go to 0 first...
+    # For now this is handled in quad_to_kipping by setting q2=None
 }
 
 for key in all_errors_dict:
     # iterate through all available error envelopes for the kipping parameterization
-    posterior_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
-                                params, param_priors, mcmc_params,
-                                transform=True)
+    posterior_samples_kip = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
+                                    params, param_priors_kip, mcmc_params,
+                                    transform=True)
 
     # Plot the corner plot
-    create_corner_plot(posterior_samples, truths, all_errors_dict[key][0]*1e6, transform=True)
+    create_corner_plot(posterior_samples_kip, truths_kip, all_errors_dict[key][0]*1e6, transform=True)
 
 #%%
 
