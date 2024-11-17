@@ -1,0 +1,15 @@
+Metadata-Version: 2.1
+Name: batman-package
+Version: 2.4.9
+Summary: Fast transit light curve modeling
+Home-page: https://github.com/lkreidberg/batman
+Author: Laura Kreidberg
+Author-email: laura.kreidberg@gmail.com
+License: GNU GPLv3
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering
+Classifier: Programming Language :: Python
+License-File: LICENSE.txt
+Requires-Dist: numpy
+

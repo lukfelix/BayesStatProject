@@ -13,7 +13,7 @@ import os
 from simulation_functions import *          # functions for simulating the light curve
 from model_functions import *               # functions for evaluation of the model
 from mcmc_functions import *                # functions used for the MCMC analysis
-
+from check_convergence import *             # functions used for checking convergence
 #%%
 ################################################################################
 #################### SIMULATING TRANSIT LIGHT CURVE(S) #########################
@@ -110,8 +110,11 @@ fig, ax = plot_single_light_curve(flux_data, time_data, all_errors_dict, plt_siz
 # Save the light curve plot
 #TODO change naming above to match all the model parameters (not very important, only relevant if we actually change them) => DONE!
 # Dynamically generate the filename with all truths parameters
-truths_str = "_".join([f"{key}_{value}" for key, value in truths.items()])
-light_curve_plot_name = output_plot_dir / f"light_curve_plot_sim_{truths_str}"
+# Bereinigen des Strings und Hinzufügen einer Dateiendung
+
+output_plot_dir = pathlib.Path("outputs/plots")
+truths_str = "_".join([f"{key}_{str(value).replace('[', '').replace(']', '').replace(', ', '_').replace(' ', '_')}" for key, value in truths.items()])
+light_curve_plot_name = output_plot_dir / f"light_curve_plot_sim_{truths_str}.png"
 
 if not os.path.exists(light_curve_plot_name):
     fig.savefig(light_curve_plot_name, dpi=300)
@@ -127,10 +130,21 @@ if not os.path.exists(light_curve_plot_name):
 # [uniform, lower bound, upper bound]
 # [gauss, mean, sigma]
 param_priors = {
-    # TODO: adapt these depending on simdata
+    # TODO: adapt these depending on simdata => DONE, see suggestion below!
     'ps':        ['uni', 0., 0.5],      # stellar radii
     'u1':        ['uni', -3., 3],     # limb darkening
     'u2':        ['uni', -3., 3.],     # limb darkening
+    # 't0':        ['uni', t_0+0.9,  t_0+1.1], # days
+    # 'a':         ['uni', 10.,  50.],        # stellar radii
+    # 'a':         ['gauss', 41, 20.],         # stellar radii
+    # 'inc':       ['uni', 80.,  90.],         # degrees maybe convert this to b? b=cos(i) * a/R*
+    # 'c':         ['uni', 0.9,  1.1],   # factor allowing vertical offset (TODO: I don't think they allow for this, but they probably should, also slope below)
+    # 'v':         ['gauss', 0, 1e3],    # allow for slope !=0 in time (dy/dt), needs a gaussian prior to converge consistently
+    }
+param_priors = {
+    'ps': ['uni', truths['ps'] * 0.5, truths['ps'] * 1.5],  # 50%-150% of simulated 'ps'
+    'u1': ['uni', -0.1, 0.1],                              # tighter bound for no limb darkening
+    'u2': ['uni', -0.1, 0.1],                              # tighter bound for no limb darkening
     # 't0':        ['uni', t_0+0.9,  t_0+1.1], # days
     # 'a':         ['uni', 10.,  50.],        # stellar radii
     # 'a':         ['gauss', 41, 20.],         # stellar radii
@@ -154,13 +168,23 @@ mcmc_params = {
 ################################################################################
 for key in all_errors_dict:
     # iterate through all available error envelopes for the default quadratic parameterization
-    posterior_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
+    posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
                                 params, param_priors, mcmc_params,
                                 transform=False)
 
     # Plot the corner plot
     create_corner_plot(posterior_samples, truths, all_errors_dict[key][0]*1e6, transform=False)
 
+    covergence_plot_name = f"outputs/plots/autocorrelation_%.0fppm_quadratic_model" % (all_errors_dict[key][0]*1e6)
+
+    # Use unflattened samples to check convergence
+    gr_stat = check_convergence(unflattened_samples, covergence_plot_name)
+
+    # Check if Gelman-Rubin statistic is below convergence threshold
+    if gr_stat.max() < 1.1:
+        print("Chains are well-mixed.")
+    else:
+        print("Chains may not have converged. Check diagnostics.")
 #%%
 ################################################################################
 ######################### Run Kipping Limb-Drkening ############################
@@ -182,20 +206,25 @@ truths = {
 
 for key in all_errors_dict:
     # iterate through all available error envelopes for the kipping parameterization
-    posterior_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
+    posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
                                 params, param_priors, mcmc_params,
                                 transform=True)
 
     # Plot the corner plot
     create_corner_plot(posterior_samples, truths, all_errors_dict[key][0]*1e6, transform=True)
 
+    plot_output_dir = pathlib.Path("outputs/plots")
+    gr_stat = check_convergence(unflattened_samples, plot_output_dir)
+
+    if gr_stat.max() < 1.1:
+        print("Chains are well-mixed.")
+    else:
+        print("Chains may not have converged. Check diagnostics.")
 #%%
 
 # TODO: Implement further statistics & plots, e.g. galman-rubin, autocorrelation, etc. to check for convergence
+# => DONE!
 
 
 #%%
-
-
-
 

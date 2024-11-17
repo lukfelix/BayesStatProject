@@ -2,6 +2,7 @@ import numpy as np
 import emcee
 import corner
 import os
+import pathlib
 
 from model_functions import full_model
 
@@ -95,9 +96,15 @@ def run_mcmc(time_data, flux_data, error_data, model,
     # Flatten the samples (remove the walkers)
     flattened_samples = samples.reshape(-1, len(priors))  # flatten the samples for plotting
     
-    # TODO: save samples in some format for more flexible plotting and post-processing
+    # TODO: save samples in some format for more flexible plotting and post-processing =>DONE!
+    samples_output_dir = pathlib.Path("outputs/samples")
+    samples_output_dir.mkdir(parents=True, exist_ok=True)
 
-    return flattened_samples
+    sample_file_name = samples_output_dir / f"samples_{mcmc['ndim']}params_{mcmc['nsteps']}steps.npy"
+    np.save(sample_file_name, flattened_samples)
+    print(f"Saved samples to {sample_file_name}")
+
+    return flattened_samples, samples
 
 def create_corner_plot(posterior_samples, truths, errval, transform=False):
     """

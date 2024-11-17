@@ -1,0 +1,57 @@
+Metadata-Version: 2.1
+Name: corner
+Version: 2.2.2
+Summary: Make some beautiful corner plots
+Author-email: Dan Foreman-Mackey <foreman.mackey@gmail.com>
+License: BSD 2-Clause License
+Project-URL: Homepage, https://corner.readthedocs.io
+Project-URL: Source, https://github.com/dfm/corner.py
+Project-URL: Bug Tracker, https://github.com/dfm/corner.py/issues
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: License :: OSI Approved :: BSD License
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: matplotlib (>=2.1)
+Provides-Extra: arviz
+Requires-Dist: arviz (>=0.9) ; extra == 'arviz'
+Provides-Extra: docs
+Requires-Dist: arviz (>=0.9) ; extra == 'docs'
+Requires-Dist: sphinx (>=1.7.5) ; extra == 'docs'
+Requires-Dist: pandoc ; extra == 'docs'
+Requires-Dist: myst-nb ; extra == 'docs'
+Requires-Dist: sphinx-book-theme ; extra == 'docs'
+Requires-Dist: ipython ; extra == 'docs'
+Provides-Extra: test
+Requires-Dist: pytest ; extra == 'test'
+Requires-Dist: arviz (>=0.9) ; extra == 'test'
+Requires-Dist: scipy ; extra == 'test'
+
+# corner.py
+
+[![Tests](https://github.com/dfm/corner.py/workflows/Tests/badge.svg?style=flat)](https://github.com/dfm/corner.py/actions)
+[![License](https://img.shields.io/badge/license-BSD-blue.svg?style=flat)](https://github.com/dfm/corner.py/blob/main/LICENSE)
+[![DOI](https://zenodo.org/badge/4729/dfm/corner.py.svg?style=flat)](https://zenodo.org/badge/latestdoi/4729/dfm/corner.py)
+[![Paper](https://joss.theoj.org/papers/10.21105/joss.00024/status.svg?style=flat)](http://dx.doi.org/10.21105/joss.00024)
+
+## Read [the documentation](http://corner.readthedocs.io/)
+
+If you make use of this code, please cite [the JOSS paper](http://dx.doi.org/10.21105/joss.00024):
+
+```tex
+@article{corner,
+  doi = {10.21105/joss.00024},
+  url = {https://doi.org/10.21105/joss.00024},
+  year  = {2016},
+  month = {jun},
+  publisher = {The Open Journal},
+  volume = {1},
+  number = {2},
+  pages = {24},
+  author = {Daniel Foreman-Mackey},
+  title = {corner.py: Scatterplot matrices in Python},
+  journal = {The Journal of Open Source Software}
+}
+```
