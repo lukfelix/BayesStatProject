@@ -23,6 +23,7 @@ from mcmc_functions import *                # functions used for the MCMC analys
 ################### Step 1 - Initialize Model Parameters #######################
 
 # Define & initialize the parameters for the light curve simulation. Based on the parameters of the paper
+# TODO: Double check if these parameters are correct from the paper => DONE!
 
 # TRUE VALUES (those are the parameters we want to estimate with MCMC)
 truths = {
