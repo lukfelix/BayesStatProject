@@ -95,7 +95,7 @@ def check_convergence(samples, covergence_plot_name):
         plt.legend()
 
         # Save autocorrelation plot
-        autocorr_plot_path = covergence_plot_name +"_param{dim}.png"
+        autocorr_plot_path = covergence_plot_name +"_param_{dim}.png"
         fig.savefig(autocorr_plot_path, dpi=300)
         plt.close(fig)
         print(f"Saved autocorrelation plot for Param {dim} to {autocorr_plot_path}")
