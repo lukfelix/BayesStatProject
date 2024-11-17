@@ -23,7 +23,6 @@ from mcmc_functions import *                # functions used for the MCMC analys
 ################### Step 1 - Initialize Model Parameters #######################
 
 # Define & initialize the parameters for the light curve simulation. Based on the parameters of the paper
-# TODO: Double check if these parameters are correct from the paper
 
 # TRUE VALUES (those are the parameters we want to estimate with MCMC)
 truths = {
@@ -70,6 +69,36 @@ all_errors_dict = {
     }  
 
 # TODO: implement a way to save the data under "outputs/data". Best to probably use numpy's "np.save" and "np.load" to save, resp. load the data
+# => DONE!
+# Create the directory
+output_dir = pathlib.Path("outputs/data")
+output_dir.mkdir(parents=True, exist_ok=True)
+
+# Save time data and flux data
+np.save(output_dir / "time_data.npy", time_data)
+np.save(output_dir / "flux_data.npy", flux_data)
+
+# Save error envelopes
+for key, error_data in all_errors_dict.items():
+    filename = key.replace(" ", "_") + "_error.npy"  # e.g., "1_ppm_error.npy"
+    np.save(output_dir / filename, error_data)
+
+
+#Can later load data like this:
+# Load time and flux data
+time_data_loaded = np.load(output_dir / "time_data.npy")
+flux_data_loaded = np.load(output_dir / "flux_data.npy")
+
+# Load error envelopes
+all_errors_loaded = {}
+for key in all_errors_dict.keys():
+    filename = key.replace(" ", "_") + "_error.npy"
+    all_errors_loaded[key] = np.load(output_dir / filename)
+
+
+
+
+
 
 #%%
 ##################### Step 3 - Plot & Save Light Curve #######################
@@ -78,8 +107,11 @@ all_errors_dict = {
 fig, ax = plot_single_light_curve(flux_data, time_data, all_errors_dict, plt_size=(15, 8))
 
 # Save the light curve plot
-light_curve_plot_name = "outputs/plots/light_curve_plot_sim"
-#TODO change naming above to match all the model parameters (not very important, only relevant if we actually change them)
+#TODO change naming above to match all the model parameters (not very important, only relevant if we actually change them) => DONE!
+# Dynamically generate the filename with all truths parameters
+truths_str = "_".join([f"{key}_{value}" for key, value in truths.items()])
+light_curve_plot_name = output_plot_dir / f"light_curve_plot_sim_{truths_str}"
+
 if not os.path.exists(light_curve_plot_name):
     fig.savefig(light_curve_plot_name, dpi=300)
 
