@@ -230,7 +230,7 @@ for key in all_errors_dict:
         print("Chains may not have converged. Check diagnostics.")
 #%%
 
-# TODO: Implement further statistics & plots, e.g. galman-rubin, autocorrelation, etc. to check for convergence
+# TODO: Implement further statistics & plots, e.g. gelman-rubin, autocorrelation, etc. to check for convergence
 # => DONE!
 
 

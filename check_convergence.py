@@ -2,38 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import emcee
 
-def autocorr(x, lag=50):
-    """
-    Compute the autocorrelation of a 1D array up to a specified lag.
-    
-    Parameters:
-    x : array-like
-        The input array (e.g., single MCMC chain for a parameter).
-    lag : int
-        Maximum lag to compute autocorrelation for.
-
-    Returns:
-    array
-        Autocorrelation values for each lag.
-    """
-    n = len(x)
-    mean = np.mean(x)
-    var = np.var(x)
-    autocorr_values = []
-
-    for l in range(lag):
-        if l == 0:
-            autocorr_values.append(1.0)  # Autocorrelation at lag 0 is always 1
-        else:
-            if l < n:  # Only calculate for valid lag values
-                autocorr_values.append(
-                    np.correlate(x[:-l] - mean, x[l:] - mean)[0] / (var * (n - l))
-                )
-            else:
-                break  # Stop if lag exceeds the length of the array
-    
-    return np.array(autocorr_values)
-
+#TODO: this function is implemented from scratch, I found a package PyMC3 which has a function pymc3.diagnostics.gelman_rubin => might want to try this out
 def gelman_rubin(samples):
     """
     Calculate the Gelman-Rubin statistic for each parameter.
@@ -122,23 +91,6 @@ def check_convergence(samples, model_name):
 
     trace_plot(param_names, n_walker, samples, "Trace Plot "+model_name, "outputs/plots/"+model_name+".png")
 
-    # Autocorrelation plots for each parameter
-    #for dim in range(ndim):
-    #    fig, ax = plt.subplots()
-    #    for walker in range(nwalkers):
-    #        autocorr_vals = autocorr(samples[walker, :, dim])
-    #        ax.plot(autocorr_vals, label=f'Walker {walker}')
-    #    ax.set_title(f"Autocorrelation of Chains (Param {dim})")
-    #    plt.xlabel('Lag')
-    #    plt.ylabel('Autocorrelation')
-    #    plt.legend()
-
-        # Save autocorrelation plot
-    #    autocorr_plot_path = str(covergence_plot_name) +"_param_{dim}.png"
-    #    fig.savefig(autocorr_plot_path, dpi=300)
-    #    plt.close(fig)
-    #    print(f"Saved autocorrelation plot for Param {dim} to {autocorr_plot_path}")
-
     # Gelman-Rubin Diagnostic (use the unflattened samples)
     gr_stat = gelman_rubin(samples)
     print(f"Gelman-Rubin Statistic: {gr_stat}")
@@ -151,7 +103,7 @@ def check_convergence(samples, model_name):
     ax.set_ylabel("GR Statistic")
 
     # Save Gelman-Rubin plot
-    gr_plot_path = str(model_name) +"_gelman_rubin_plot.png"
+    gr_plot_path = "outputs/plots/"+str(model_name) +"_gelman_rubin_plot.png"
     fig.savefig(gr_plot_path, dpi=300)
     plt.close(fig)
     print(f"Saved Gelman-Rubin plot to {gr_plot_path}")
