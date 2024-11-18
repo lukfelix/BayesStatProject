@@ -34,37 +34,76 @@ def autocorr(x, lag=50):
     
     return np.array(autocorr_values)
 
-def gelman_rubin(chains):
+def gelman_rubin(samples):
     """
     Calculate the Gelman-Rubin statistic for each parameter.
 
     Parameters:
-    chains : array-like
+    samples : array-like
         MCMC chains of shape (nwalkers, nsteps, ndim).
 
     Returns:
     array
         Gelman-Rubin statistics for each parameter.
     """
-    num_chains, num_samples, num_params = chains.shape
-    chain_means = np.mean(chains, axis=1)
-    chain_variances = np.var(chains, axis=1, ddof=1)
+    n_steps, n_walkers, ndim = samples.shape
+    print()
+    chain_means = np.mean(samples, axis=1)
+    chain_variances = np.var(samples, axis=1, ddof=1)
     overall_mean = np.mean(chain_means, axis=0)
 
     # Between-chain variance
-    B = num_samples * np.var(chain_means, axis=0, ddof=1)
+    B = n_walkers * np.var(chain_means, axis=0, ddof=1)
     # Within-chain variance
     W = np.mean(chain_variances, axis=0)
 
     # Gelman-Rubin statistic
-    R_hat = np.sqrt((W * (num_samples - 1) / num_samples + B / num_samples) / W)
+    R_hat = np.sqrt((W * (n_walkers - 1) / n_walkers + B / n_walkers) / W)
     return R_hat
 
 
 
-def check_convergence(samples, covergence_plot_name):
+def trace_plot(param_names, n_walker, chain_per_walker, title, save_path):
     """
-    Check convergence of MCMC samples by plotting autocorrelation and 
+    Plot the trace of the MCMC chain for all walkers.
+
+    Parameters:
+    param_names : list of str
+        Names of the parameters being plotted.
+    n_walker : int
+        Number of walkers.
+    chain_per_walker : ndarray
+        The MCMC chain of shape (n_steps, n_walkers, n_params).
+    title : str, optional
+        Title of the plot. Defaults to None.
+    save_path : str or Path, optional
+        Path to save the plot. Defaults to None.
+    """
+    # Create subplots for each parameter
+    fig, ax = plt.subplots(len(param_names), 1, sharex=True, figsize=(10, 2 * len(param_names)))
+    plt.subplots_adjust(hspace=0.3)
+
+    # Plot traces
+    for i, name in enumerate(param_names):
+        for j in range(n_walker):
+            ax[i].plot(chain_per_walker[:, j, i], lw=0.5, alpha=0.7, color=f"C{j}")
+        ax[i].set_ylabel(name)
+    ax[-1].set_xlabel("step")
+
+    # Set the title
+    fig.suptitle(title, fontsize=16)
+    plt.subplots_adjust(top=0.9)  # Adjust layout to fit the title
+
+    # Save the plot
+    fig.savefig(save_path, dpi=300)
+    print(f"Plot saved to {save_path}")
+
+    plt.show()  # Display the plot
+
+
+def check_convergence(samples, model_name):
+    """
+    Check convergence of MCMC samples by plotting traceplots, autocorrelation-time and 
     calculating the Gelman-Rubin diagnostic.
     
     Parameters:
@@ -77,28 +116,28 @@ def check_convergence(samples, covergence_plot_name):
     ndarray
         Gelman-Rubin statistics for each parameter.
     """
-    nwalkers, nsteps, ndim = samples.shape
+    nsteps, n_walker, ndim = samples.shape
+    print(samples.shape)
     param_names = ['ps', 'u1', 'u2']
-    tau = emcee.autocorr.integrated_time(samples)
-    print("Integrated auto-correlation time")
-    for name, iat in zip(param_names, tau):
-        print(f"{name}: {iat:.1f}")
+
+    trace_plot(param_names, n_walker, samples, "Trace Plot "+model_name, "outputs/plots/"+model_name+".png")
+
     # Autocorrelation plots for each parameter
-    for dim in range(ndim):
-        fig, ax = plt.subplots()
-        for walker in range(nwalkers):
-            autocorr_vals = autocorr(samples[walker, :, dim])
-            ax.plot(autocorr_vals, label=f'Walker {walker}')
-        ax.set_title(f"Autocorrelation of Chains (Param {dim})")
-        plt.xlabel('Lag')
-        plt.ylabel('Autocorrelation')
-        plt.legend()
+    #for dim in range(ndim):
+    #    fig, ax = plt.subplots()
+    #    for walker in range(nwalkers):
+    #        autocorr_vals = autocorr(samples[walker, :, dim])
+    #        ax.plot(autocorr_vals, label=f'Walker {walker}')
+    #    ax.set_title(f"Autocorrelation of Chains (Param {dim})")
+    #    plt.xlabel('Lag')
+    #    plt.ylabel('Autocorrelation')
+    #    plt.legend()
 
         # Save autocorrelation plot
-        autocorr_plot_path = covergence_plot_name +"_param_{dim}.png"
-        fig.savefig(autocorr_plot_path, dpi=300)
-        plt.close(fig)
-        print(f"Saved autocorrelation plot for Param {dim} to {autocorr_plot_path}")
+    #    autocorr_plot_path = str(covergence_plot_name) +"_param_{dim}.png"
+    #    fig.savefig(autocorr_plot_path, dpi=300)
+    #    plt.close(fig)
+    #    print(f"Saved autocorrelation plot for Param {dim} to {autocorr_plot_path}")
 
     # Gelman-Rubin Diagnostic (use the unflattened samples)
     gr_stat = gelman_rubin(samples)
@@ -112,7 +151,7 @@ def check_convergence(samples, covergence_plot_name):
     ax.set_ylabel("GR Statistic")
 
     # Save Gelman-Rubin plot
-    gr_plot_path = output_dir / "gelman_rubin_plot.png"
+    gr_plot_path = str(model_name) +"_gelman_rubin_plot.png"
     fig.savefig(gr_plot_path, dpi=300)
     plt.close(fig)
     print(f"Saved Gelman-Rubin plot to {gr_plot_path}")

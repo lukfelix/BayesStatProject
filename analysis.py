@@ -166,19 +166,22 @@ mcmc_params = {
 ################################################################################
 ######################### Run Quadratic Limb-Drkening ##########################
 ################################################################################
+param_names = ['ps', 'u1', 'u2']
+
 for key in all_errors_dict:
     # iterate through all available error envelopes for the default quadratic parameterization
+    #TODO: maybe nicer way to pass param_names
     posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
-                                params, param_priors, mcmc_params,
+                                params, param_priors, mcmc_params, param_names,
                                 transform=False)
 
     # Plot the corner plot
     create_corner_plot(posterior_samples, truths, all_errors_dict[key][0]*1e6, transform=False)
 
-    covergence_plot_name = f"outputs/plots/autocorrelation_%.0fppm_quadratic_model" % (all_errors_dict[key][0]*1e6)
+    model_name = f"%.0fppm_quadratic_model" % (all_errors_dict[key][0]*1e6)
 
     # Use unflattened samples to check convergence
-    gr_stat = check_convergence(unflattened_samples, covergence_plot_name)
+    gr_stat = check_convergence(unflattened_samples, model_name)
 
     # Check if Gelman-Rubin statistic is below convergence threshold
     if gr_stat.max() < 1.1:
@@ -205,16 +208,21 @@ truths = {
 }
 
 for key in all_errors_dict:
+    param_names = ['ps', 'q1', 'q2']
     # iterate through all available error envelopes for the kipping parameterization
+    #TODO: maybe nicer way to pass param_names
     posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
-                                params, param_priors, mcmc_params,
+                                params, param_priors, mcmc_params, param_names,
                                 transform=True)
 
     # Plot the corner plot
     create_corner_plot(posterior_samples, truths, all_errors_dict[key][0]*1e6, transform=True)
+    
+    model_name = f"%.0fppm_kipping_model" % (all_errors_dict[key][0]*1e6)
 
-    plot_output_dir = pathlib.Path("outputs/plots")
-    gr_stat = check_convergence(unflattened_samples, plot_output_dir)
+    # Use unflattened samples to check convergence
+    gr_stat = check_convergence(unflattened_samples, model_name)
+
 
     if gr_stat.max() < 1.1:
         print("Chains are well-mixed.")
