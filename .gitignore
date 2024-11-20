@@ -3,3 +3,5 @@ outputs/plots/*.jpg
 *.pyc
 
 __pycache__/
+
+myenv/*

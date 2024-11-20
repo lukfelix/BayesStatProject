@@ -141,17 +141,7 @@ param_priors = {
     # 'c':         ['uni', 0.9,  1.1],   # factor allowing vertical offset (TODO: I don't think they allow for this, but they probably should, also slope below)
     # 'v':         ['gauss', 0, 1e3],    # allow for slope !=0 in time (dy/dt), needs a gaussian prior to converge consistently
     }
-param_priors = {
-    'ps': ['uni', truths['ps'] * 0.5, truths['ps'] * 1.5],  # 50%-150% of simulated 'ps'
-    'u1': ['uni', -0.1, 0.1],                              # tighter bound for no limb darkening
-    'u2': ['uni', -0.1, 0.1],                              # tighter bound for no limb darkening
-    # 't0':        ['uni', t_0+0.9,  t_0+1.1], # days
-    # 'a':         ['uni', 10.,  50.],        # stellar radii
-    # 'a':         ['gauss', 41, 20.],         # stellar radii
-    # 'inc':       ['uni', 80.,  90.],         # degrees maybe convert this to b? b=cos(i) * a/R*
-    # 'c':         ['uni', 0.9,  1.1],   # factor allowing vertical offset (TODO: I don't think they allow for this, but they probably should, also slope below)
-    # 'v':         ['gauss', 0, 1e3],    # allow for slope !=0 in time (dy/dt), needs a gaussian prior to converge consistently
-    }
+
 
 # MCMC parameters
 # TODO: just a working selection right now, could probably be improved
