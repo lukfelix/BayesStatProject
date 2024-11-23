@@ -52,8 +52,8 @@ def log_posterior(theta, t, y, yerr, params, model, priors, transform):
     return lp + log_likelihood(theta, t, y, yerr, params, model, transform)
 
 def run_mcmc(time_data, flux_data, error_data, model,
-             model_params, priors, mcmc, param_names,
-             transform=False):
+             model_params, priors, mcmc, 
+             transform=False, save=False):
     """
     In this function we take all the necessary inputs for running the mcmc provided in the analysis.py file.
     From there we initialize the mcmc-run and execute it, resulting in posterior samples that are returned.
@@ -64,10 +64,11 @@ def run_mcmc(time_data, flux_data, error_data, model,
     model_params    :   batman param instance (needs to already contain the fixed parameter values)
     priors          :   dict of planet radii and limb-drakening priors, can either be gaussian or uniform atm
     mcmc            :   dict of mcmc parameters ( 'ndim', 'nwalkers', 'nsteps', 'burn_in_frac')
-    param_names     :   names of parameters to be fitted
     transform=False :   whether or not the limb-darkening is analysed in 
                             the transformed Kipping parameterization (True) 
                             or default quadratic (False)
+    save_False      :   whether ot not to save the flattened samples in an npy file
+                            enabling this slows the script considerably, files are of order 10s of MB
 
     Returns         :   flattened posterior samples
     """
@@ -97,19 +98,20 @@ def run_mcmc(time_data, flux_data, error_data, model,
     # Get autocorrelation-time
     tau = sampler.get_autocorr_time()
     print("Integrated auto-correlation time")
-    for name, iat in zip(param_names, tau):
+    for name, iat in zip(priors.keys(), tau):
         print(f"{name}: {iat:.1f}")
 
     # Flatten the samples (remove the walkers)
     flattened_samples = samples.reshape(-1, len(priors))  # flatten the samples for plotting
-    
-    # TODO: save samples in some format for more flexible plotting and post-processing =>DONE!
-    samples_output_dir = pathlib.Path("outputs/samples")
-    samples_output_dir.mkdir(parents=True, exist_ok=True)
 
-    sample_file_name = samples_output_dir / f"samples_{mcmc['ndim']}params_{mcmc['nsteps']}steps.npy"
-    np.save(sample_file_name, flattened_samples)
-    print(f"Saved samples to {sample_file_name}")
+    if save:    
+        # save flattened samples for more flexible plotting and post-processing
+        samples_output_dir = pathlib.Path("outputs/samples")
+        samples_output_dir.mkdir(parents=True, exist_ok=True)
+
+        sample_file_name = samples_output_dir / f"samples_{mcmc['ndim']}params_{mcmc['nsteps']}steps.npy"
+        np.save(sample_file_name, flattened_samples)
+        print(f"Saved samples to {sample_file_name}")
 
     return flattened_samples, samples
 
@@ -122,8 +124,9 @@ def create_corner_plot(posterior_samples, truths, errval, transform=False):
         title_fmt='.5f',
         bins=50,
         show_titles=True,
-        labels=[r"$P_S$", r"$u_1$", r"$u_2$"], 
-        truths=[truths['ps'], truths['u'][0], truths['u'][1]],
+        labels=[r"$P_S$", r"$u_1$", r"$u_2$"], # leave this in since we want fancier plots, but at some point go with keys for flexibility
+        # labels = truths.keys(),
+        truths=[truths['ps'], truths['u1'], truths['u2']],
         plot_density=True,
         plot_datapoints=True,
         fill_contours=False,

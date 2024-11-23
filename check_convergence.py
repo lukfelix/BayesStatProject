@@ -32,7 +32,7 @@ def gelman_rubin(samples):
 
 
 
-def trace_plot(param_names, n_walker, chain_per_walker, title, save_path):
+def trace_plot(param_names, n_walker, chain_per_walker, title, save_path, show=False):
     """
     Plot the trace of the MCMC chain for all walkers.
 
@@ -67,7 +67,8 @@ def trace_plot(param_names, n_walker, chain_per_walker, title, save_path):
     fig.savefig(save_path, dpi=300)
     print(f"Plot saved to {save_path}")
 
-    plt.show()  # Display the plot
+    if show:
+        plt.show()  # Display the plot
 
 
 def check_convergence(samples, model_name, param_names):

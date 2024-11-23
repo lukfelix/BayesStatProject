@@ -25,7 +25,8 @@ from check_convergence import *             # functions used for checking conver
 # TRUE VALUES (those are the parameters we want to estimate with MCMC)
 truths = {
     'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
-    'u':[0, 0]                       # limb-darkening coefficients: u1, u2 (no limb-darkening = [0, 0])
+    'u1':0,                          # limb-darkening coefficients: u1, 
+    'u2':0,                          # u2 (no limb-darkening: u1=0, u2=0)
 }
 
 # FIXED VALUES (those are the parameters we assume to be known)
@@ -68,9 +69,9 @@ all_errors_dict = {
     "1000 ppm": (1000 / 1e6) * flux_data,       # error envelope for 1000 ppm
     }  
 
-save_simdata(time_data, flux_data, all_errors_dict, 'quadratic')
+save_simdata(time_data, flux_data, all_errors_dict, 'no_ld')
 # the reload below is unnecessary, but here to illustrate how to load the data if necessary later on:
-time_data, flux_data, all_errors_dict = load_simdata_all_errs('quadratic')
+time_data, flux_data, all_errors_dict = load_simdata_all_errs('no_ld')
 
 
 
@@ -80,15 +81,12 @@ time_data, flux_data, all_errors_dict = load_simdata_all_errs('quadratic')
 # Plot the simulated light curve. This is the light curve we assume to be the true data. The error envelopes represent our "observed" data
 fig, ax = plot_single_light_curve(flux_data, time_data, all_errors_dict, plt_size=(15, 8))
 
-# Save the light curve plot
-#TODO change naming above to match all the model parameters (not very important, only relevant if we actually change them) => DONE!
 # Dynamically generate the filename with all truths parameters
-# Bereinigen des Strings und Hinzufügen einer Dateiendung
-
 output_plot_dir = pathlib.Path("outputs/plots")
 truths_str = get_name_str(truths=truths)
 light_curve_plot_name = output_plot_dir / f"light_curve_plot_sim_{truths_str}.png"
 
+# Save the light curve plot
 if not os.path.exists(light_curve_plot_name):
     fig.savefig(light_curve_plot_name, dpi=300)
 
@@ -103,7 +101,6 @@ if not os.path.exists(light_curve_plot_name):
 # [uniform, lower bound, upper bound]
 # [gauss, mean, sigma]
 param_priors = {
-    # TODO: adapt these depending on simdata => DONE, see suggestion below!
     'ps':        ['uni', 0., 0.5],      # stellar radii
     'u1':        ['uni', -3., 3],     # limb darkening
     'u2':        ['uni', -3., 3.],     # limb darkening
@@ -117,7 +114,6 @@ param_priors = {
 
 
 # MCMC parameters
-# TODO: just a working selection right now, could probably be improved
 mcmc_params = {
     'ndim'        :len(param_priors),
     'nwalkers'    :4*len(param_priors),
@@ -129,14 +125,11 @@ mcmc_params = {
 ################################################################################
 ######################### Run Quadratic Limb-Drkening ##########################
 ################################################################################
-param_names = ['ps', 'u1', 'u2']
 
 for key in all_errors_dict:
-    
     # iterate through all available error envelopes for the default quadratic parameterization
-    #TODO: maybe nicer way to pass param_names
     posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
-                                params, param_priors, mcmc_params, param_names,
+                                params, param_priors, mcmc_params,
                                 transform=False)
 
     # Plot the corner plot
@@ -145,7 +138,7 @@ for key in all_errors_dict:
     model_name = f"%.0fppm_quadratic_model" % (all_errors_dict[key][0]*1e6)
 
     # Use unflattened samples to check convergence
-    gr_stat = check_convergence(unflattened_samples, model_name, param_names)
+    gr_stat = check_convergence(unflattened_samples, model_name, truths.keys())
 
     # Check if Gelman-Rubin statistic is below convergence threshold
     if gr_stat.max() < 1.1:
@@ -159,24 +152,23 @@ for key in all_errors_dict:
 
 # update priors and ground truth to Kipping
 param_priors = {
-    # TODO: adapt these depending on simdata
     'ps':        ['uni', 0., 0.5],      # stellar radii
     'u1':        ['uni', 0., 1.],     # limb darkening
     'u2':        ['uni', 0., 1.],     # limb darkening
 }
+
 truths = {
     'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
-    'u':[0, None]                    # limb-darkening coefficients: q1, q2 (no limb-darkening = [0, ?])
-    # TODO: q2 is not actually well defined... need to calculate the limes of 0.5 * u1 / (u1 + u2) for u1 & u2 -> 0, i guess it's 0.25?
-    # 
+    'u1':0,                          # limb-darkening coefficients: q1 
+    'u2':None,                       # limb-darkening coefficients: q2
+    # TODO: q2 is not actually well defined... need to calculate the limes of 0.5 * u1 / (u1 + u2) for u1 & u2 -> 0
+    # but it diverges (gives different results depending which param you let go to 0 first)
 }
 
 for key in all_errors_dict:
-    param_names = ['ps', 'q1', 'q2']
     # iterate through all available error envelopes for the kipping parameterization
-    #TODO: maybe nicer way to pass param_names
     posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
-                                params, param_priors, mcmc_params, param_names,
+                                params, param_priors, mcmc_params,
                                 transform=True)
 
     # Plot the corner plot
@@ -185,7 +177,7 @@ for key in all_errors_dict:
     model_name = f"%.0fppm_kipping_model" % (all_errors_dict[key][0]*1e6)
 
     # Use unflattened samples to check convergence
-    gr_stat = check_convergence(unflattened_samples, model_name, param_names)
+    gr_stat = check_convergence(unflattened_samples, model_name, truths.keys())
 
 
     if gr_stat.max() < 1.1:

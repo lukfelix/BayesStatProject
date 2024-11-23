@@ -11,12 +11,12 @@ def initialize_parameters(truths, fixed):
     params = batman.TransitParams()       
     params.t0 = fixed['t0']                          # time of inferior conjunction
     params.per = fixed['period']                     # orbital period (in days)
-    params.rp = truths['ps']                   # planet-to-star radius ratio = planet radius (in units of stellar radii)
+    params.rp = truths['ps']                         # planet-to-star radius ratio = planet radius (in units of stellar radii)
     params.a = fixed['a']                            # semi-major axis in stellar radii
     params.inc = fixed['inc']                        # orbital inclination in degrees
-    params.ecc = fixed['ecc']                          # eccentricity
+    params.ecc = fixed['ecc']                        # eccentricity
     params.w = fixed['omega']                        # longitude of periastron (in degrees)
-    params.u = truths['u']                            # limb-darkening coefficients (no limb-darkening)
+    params.u = [truths['u1'], truths['u1']]          # limb-darkening coefficients (no limb-darkening)
     params.limb_dark = fixed['limb_dark_model']      # limb-darkening model
 
     # Time array for the simulation
@@ -55,27 +55,35 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 # Function to plot the simulated light curve with a zoomed-in inset
 def plot_single_light_curve(flux_data, time_data, all_errors_dic, plt_size=(10, 5)):
-    # Determine the number of keys to scale alpha values
-    num_keys = len(all_errors_dic)
-    alpha_values = np.linspace(0.8, 0.1, num_keys)  # Scale from 0.9 to 0.1
-
+    
+    # dynamically adapt alpha value to get around the random sorting of dicts that ,essed up coloring...
+    # (TODO: there (hopefully) is a better solution to this, but this was simpler for now)
+    minalpha, maxalpha = 0.1, 0.8
+    err_list = [int(key.replace(' ppm', '')) for key in list(all_errors_dic.keys())]
+    minerr, maxerr = min(err_list), max(err_list)
+    
     # Create main plot
     fig, ax = plt.subplots(figsize=plt_size)
     ax.plot(time_data, flux_data, color='black', label="Simulated Light Curve", lw=0.5)  # plot the simulated light curve
+    
+    # Create inset (zoomed view)
+    zoom_range = 0.05
+    axins = inset_axes(ax, width="30%", height="30%", loc='lower right', borderpad=2)
+    axins.plot(time_data, flux_data, color='black', lw=0.5)
+
     for i, (key, error) in enumerate(all_errors_dic.items()):
-        ax.fill_between(time_data, flux_data - error, flux_data + error, alpha=alpha_values[i], label=key, color='forestgreen')
+        alpha = minalpha + (maxalpha-minalpha)*(np.log(maxerr) - np.log(error[0]*1e6))/np.log(maxerr)
+
+        ax.fill_between(time_data, flux_data - error, flux_data + error, alpha=alpha, label=key, color='forestgreen')
+        axins.fill_between(time_data, flux_data - error, flux_data + error, alpha=alpha, color='forestgreen')
 
     ax.set_xlabel("Time from Mid-Transit (days)")
     ax.set_ylabel("Relative Flux")
     ax.set_title("Simulated Transit Light Curve with Error Envelopes")
     ax.legend()
 
-    # Create inset (zoomed view)
-    zoom_range = 0.05
-    axins = inset_axes(ax, width="30%", height="30%", loc='lower right', borderpad=2)
-    axins.plot(time_data, flux_data, color='black', lw=0.5)
-    for i, (key, error) in enumerate(all_errors_dic.items()):
-        axins.fill_between(time_data, flux_data - error, flux_data + error, alpha=alpha_values[i], color='forestgreen')
+    
+    
 
     axins.set_xlim(-zoom_range, zoom_range)
     axins.set_ylim(min(flux_data)-0.0012, min(flux_data)+0.0012)  # Set y-limits; adjust the factor as needed
