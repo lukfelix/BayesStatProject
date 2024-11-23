@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import batman
-import corner
 import os
 
 # Import predefined functions from other files
@@ -13,6 +12,43 @@ from simulation_functions import *          # functions for simulating the light
 from model_functions import *               # functions for evaluation of the model
 from mcmc_functions import *                # functions used for the MCMC analysis
 from check_convergence import *             # functions used for checking convergence
+#%%
+
+def run_full_routine(truths, model_params, model, priors, mcmc, 
+                     time_data, flux_data, errors_dict, 
+                     transform=False, save=None):
+    
+    for key in errors_dict:
+        # iterate through all available error envelopes for the default quadratic parameterization
+        if save == None:
+            posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, errors_dict[key], model,
+                                                                model_params, priors, mcmc,
+                                                                transform=transform)
+        else:
+            posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, errors_dict[key], model,
+                                                                model_params, priors, mcmc,
+                                                                transform=transform, save=save+'_'+key)
+
+        # Plot the corner plot
+        create_corner_plot(posterior_samples, truths, errors_dict[key][0]*1e6, transform=transform)
+
+        if transform:
+            model_name = f"%.0fppm_kipping_model" % (errors_dict[key][0]*1e6)
+        else:
+            model_name = f"%.0fppm_quadratic_model" % (errors_dict[key][0]*1e6)
+
+        # Use unflattened samples to check convergence
+        gr_stat = check_convergence(unflattened_samples, model_name, truths.keys())
+
+        # Check if Gelman-Rubin statistic is below convergence threshold
+        if gr_stat.max() < 1.1:
+            print("Chains are well-mixed.")
+        else:
+            print("Chains may not have converged. Check diagnostics.")
+
+    return
+    
+
 #%%
 ################################################################################
 #################### SIMULATING TRANSIT LIGHT CURVE(S) #########################
@@ -90,10 +126,10 @@ light_curve_plot_name = output_plot_dir / f"light_curve_plot_sim_{truths_str}.pn
 if not os.path.exists(light_curve_plot_name):
     fig.savefig(light_curve_plot_name, dpi=300)
 
-#%%
 
+#%%
 ################################################################################
-######################### FITTING DATA TO A MODEL ##############################
+######################### Run Quadratic Limb-Drkening ##########################
 ################################################################################
 
 # choose Priors
@@ -101,17 +137,10 @@ if not os.path.exists(light_curve_plot_name):
 # [uniform, lower bound, upper bound]
 # [gauss, mean, sigma]
 param_priors = {
-    'ps':        ['uni', 0., 0.5],      # stellar radii
-    'u1':        ['uni', -3., 3],     # limb darkening
+    'ps':        ['uni', 0., 0.5],     # stellar radii
+    'u1':        ['uni', -3., 3],      # limb darkening
     'u2':        ['uni', -3., 3.],     # limb darkening
-    # 't0':        ['uni', t_0+0.9,  t_0+1.1], # days
-    # 'a':         ['uni', 10.,  50.],        # stellar radii
-    # 'a':         ['gauss', 41, 20.],         # stellar radii
-    # 'inc':       ['uni', 80.,  90.],         # degrees maybe convert this to b? b=cos(i) * a/R*
-    # 'c':         ['uni', 0.9,  1.1],   # factor allowing vertical offset (TODO: I don't think they allow for this, but they probably should, also slope below)
-    # 'v':         ['gauss', 0, 1e3],    # allow for slope !=0 in time (dy/dt), needs a gaussian prior to converge consistently
-    }
-
+}
 
 # MCMC parameters
 mcmc_params = {
@@ -121,30 +150,11 @@ mcmc_params = {
     'burn_in_frac':0.6,
 }
 
-#%%
-################################################################################
-######################### Run Quadratic Limb-Drkening ##########################
-################################################################################
-
-for key in all_errors_dict:
-    # iterate through all available error envelopes for the default quadratic parameterization
-    posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
-                                params, param_priors, mcmc_params,
-                                transform=False)
-
-    # Plot the corner plot
-    create_corner_plot(posterior_samples, truths, all_errors_dict[key][0]*1e6, transform=False)
-
-    model_name = f"%.0fppm_quadratic_model" % (all_errors_dict[key][0]*1e6)
-
-    # Use unflattened samples to check convergence
-    gr_stat = check_convergence(unflattened_samples, model_name, truths.keys())
-
-    # Check if Gelman-Rubin statistic is below convergence threshold
-    if gr_stat.max() < 1.1:
-        print("Chains are well-mixed.")
-    else:
-        print("Chains may not have converged. Check diagnostics.")
+# iterate over all errors, creating output plots, may take a while!
+# if you want to save the file, additionally pass the argument save=get_name_str(truths)
+# run_full_routine(truths, params, model, param_priors, mcmc_params, 
+#                  time_data, flux_data, all_errors_dict, 
+#                  transform=False)#, save=get_name_str(truths))
 #%%
 ################################################################################
 ######################### Run Kipping Limb-Drkening ############################
@@ -152,7 +162,7 @@ for key in all_errors_dict:
 
 # update priors and ground truth to Kipping
 param_priors = {
-    'ps':        ['uni', 0., 0.5],      # stellar radii
+    'ps':        ['uni', 0., 0.5],    # stellar radii
     'u1':        ['uni', 0., 1.],     # limb darkening
     'u2':        ['uni', 0., 1.],     # limb darkening
 }
@@ -165,24 +175,11 @@ truths = {
     # but it diverges (gives different results depending which param you let go to 0 first)
 }
 
-for key in all_errors_dict:
-    # iterate through all available error envelopes for the kipping parameterization
-    posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
-                                params, param_priors, mcmc_params,
-                                transform=True)
+# iterate over all errors, creating output plots, may take a while!
+# if you want to save the file, additionally pass the argument save=get_name_str(truths)
+run_full_routine(truths, params, model, param_priors, mcmc_params, 
+                 time_data, flux_data, all_errors_dict, 
+                 transform=True)#, save=get_name_str(truths))
 
-    # Plot the corner plot
-    create_corner_plot(posterior_samples, truths, all_errors_dict[key][0]*1e6, transform=True)
-    
-    model_name = f"%.0fppm_kipping_model" % (all_errors_dict[key][0]*1e6)
-
-    # Use unflattened samples to check convergence
-    gr_stat = check_convergence(unflattened_samples, model_name, truths.keys())
-
-
-    if gr_stat.max() < 1.1:
-        print("Chains are well-mixed.")
-    else:
-        print("Chains may not have converged. Check diagnostics.")
 #%%
 

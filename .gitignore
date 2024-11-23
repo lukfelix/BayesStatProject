@@ -1,7 +1,7 @@
 outputs/plots/*.jpg
 
 *.pyc
-*steps.npy   # not uploading these as they could become large (order of 10s of MB) depending on chain length
+outputs/samples/*steps.npy   # not uploading these as they could become large (order of 10s of MB) depending on chain length
 
 __pycache__/
 

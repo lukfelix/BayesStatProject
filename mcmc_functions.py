@@ -53,7 +53,7 @@ def log_posterior(theta, t, y, yerr, params, model, priors, transform):
 
 def run_mcmc(time_data, flux_data, error_data, model,
              model_params, priors, mcmc, 
-             transform=False, save=False):
+             transform=False, save=None):
     """
     In this function we take all the necessary inputs for running the mcmc provided in the analysis.py file.
     From there we initialize the mcmc-run and execute it, resulting in posterior samples that are returned.
@@ -67,8 +67,9 @@ def run_mcmc(time_data, flux_data, error_data, model,
     transform=False :   whether or not the limb-darkening is analysed in 
                             the transformed Kipping parameterization (True) 
                             or default quadratic (False)
-    save_False      :   whether ot not to save the flattened samples in an npy file
-                            enabling this slows the script considerably, files are of order 10s of MB
+    save=None       :   whether ot not to save the flattened samples in an npy file
+                            It'a enabled by entering any string which will end up in the name of the file.
+                            Enabling this slows the script considerably, files are of order 10s of MB
 
     Returns         :   flattened posterior samples
     """
@@ -104,12 +105,12 @@ def run_mcmc(time_data, flux_data, error_data, model,
     # Flatten the samples (remove the walkers)
     flattened_samples = samples.reshape(-1, len(priors))  # flatten the samples for plotting
 
-    if save:    
+    if save != None:
         # save flattened samples for more flexible plotting and post-processing
         samples_output_dir = pathlib.Path("outputs/samples")
         samples_output_dir.mkdir(parents=True, exist_ok=True)
 
-        sample_file_name = samples_output_dir / f"samples_{mcmc['ndim']}params_{mcmc['nsteps']}steps.npy"
+        sample_file_name = samples_output_dir / f"samples_{save}_{mcmc['nsteps']}steps.npy"
         np.save(sample_file_name, flattened_samples)
         print(f"Saved samples to {sample_file_name}")
 
@@ -137,9 +138,9 @@ def create_corner_plot(posterior_samples, truths, errval, transform=False):
         truth_color='cornflowerblue',
     )
     if transform:
-        corner_plot_name = "outputs/plots/corner_plot_kipping_%.0fppm_no_linear_model" % (errval)
+        corner_plot_name = "outputs/plots/corner_plot_kipping_%.0fppm" % (errval)
     else:
-        corner_plot_name = "outputs/plots/corner_plot_quadratic_%.0fppm_no_linear_model" % (errval)
+        corner_plot_name = "outputs/plots/corner_plot_quadratic_%.0fppm" % (errval)
 
     if not os.path.exists(corner_plot_name):
         fig.savefig(corner_plot_name, dpi=300)
