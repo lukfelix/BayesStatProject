@@ -70,7 +70,7 @@ def trace_plot(param_names, n_walker, chain_per_walker, title, save_path):
     plt.show()  # Display the plot
 
 
-def check_convergence(samples, model_name):
+def check_convergence(samples, model_name, param_names):
     """
     Check convergence of MCMC samples by plotting traceplots, autocorrelation-time and 
     calculating the Gelman-Rubin diagnostic.
@@ -87,9 +87,8 @@ def check_convergence(samples, model_name):
     """
     nsteps, n_walker, ndim = samples.shape
     print(samples.shape)
-    param_names = ['ps', 'u1', 'u2']
 
-    trace_plot(param_names, n_walker, samples, "Trace Plot "+model_name, "outputs/plots/"+model_name+".png")
+    trace_plot(param_names, n_walker, samples, "Trace Plot "+model_name, "outputs/plots/traces_"+model_name+".png")
 
     # Gelman-Rubin Diagnostic (use the unflattened samples)
     gr_stat = gelman_rubin(samples)
@@ -103,7 +102,7 @@ def check_convergence(samples, model_name):
     ax.set_ylabel("GR Statistic")
 
     # Save Gelman-Rubin plot
-    gr_plot_path = "outputs/plots/"+str(model_name) +"_gelman_rubin_plot.png"
+    gr_plot_path = "outputs/plots/gelman_rubin_"+str(model_name) +".png"
     fig.savefig(gr_plot_path, dpi=300)
     plt.close(fig)
     print(f"Saved Gelman-Rubin plot to {gr_plot_path}")

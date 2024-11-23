@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import matplotlib
 import batman
 import corner
-import pathlib
 import os
 
 # Import predefined functions from other files
@@ -21,9 +20,7 @@ from check_convergence import *             # functions used for checking conver
 
 
 ################### Step 1 - Initialize Model Parameters #######################
-
 # Define & initialize the parameters for the light curve simulation. Based on the parameters of the paper
-# TODO: Double check if these parameters are correct from the paper => DONE!
 
 # TRUE VALUES (those are the parameters we want to estimate with MCMC)
 truths = {
@@ -61,43 +58,19 @@ model = batman.TransitModel(params, t_array, nthreads = int(ncpu))    #initializ
 flux_data = simulate_light_curve(model, params)         # Simulate the light curve using the batman model and the parameters to generate the data
 time_data = t_array                                     # Time array for the simulation
 
-# Define the (half-) error envelopes for the light curve ranging from 1-1000 ppm & store them in a dictionary. Half because we want the error to be symmetric around the flux_data
+# Define the error envelopes for the light curve ranging from 1-1000 ppm & store them in a dictionary. 
 all_errors_dict = {
     "1 ppm":    (1    / 1e6) * flux_data,       # error envelope for 1 ppm
     "10 ppm":   (10   / 1e6) * flux_data,       # error envelope for 10 ppm
-    "100 ppm":  (100  / 1e6) * flux_data,       # error envelope for 100 ppm, 
+    "30 ppm":   (30   / 1e6) * flux_data,       # error envelope for 30 ppm
+    "100 ppm":  (100  / 1e6) * flux_data,       # error envelope for 100 ppm,
+    "300 ppm":  (300  / 1e6) * flux_data,       # error envelope for 300 ppm, 
     "1000 ppm": (1000 / 1e6) * flux_data,       # error envelope for 1000 ppm
     }  
 
-# TODO: implement a way to save the data under "outputs/data". Best to probably use numpy's "np.save" and "np.load" to save, resp. load the data
-# => DONE!
-# Create the directory
-output_dir = pathlib.Path("outputs/data")
-output_dir.mkdir(parents=True, exist_ok=True)
-
-# Save time data and flux data
-np.save(output_dir / "time_data.npy", time_data)
-np.save(output_dir / "flux_data.npy", flux_data)
-
-# Save error envelopes
-for key, error_data in all_errors_dict.items():
-    filename = key.replace(" ", "_") + "_error.npy"  # e.g., "1_ppm_error.npy"
-    np.save(output_dir / filename, error_data)
-
-
-#Can later load data like this:
-# Load time and flux data
-time_data_loaded = np.load(output_dir / "time_data.npy")
-flux_data_loaded = np.load(output_dir / "flux_data.npy")
-
-# Load error envelopes
-all_errors_loaded = {}
-for key in all_errors_dict.keys():
-    filename = key.replace(" ", "_") + "_error.npy"
-    all_errors_loaded[key] = np.load(output_dir / filename)
-
-
-
+save_simdata(time_data, flux_data, all_errors_dict, 'quadratic')
+# the reload below is unnecessary, but here to illustrate how to load the data if necessary later on:
+time_data, flux_data, all_errors_dict = load_simdata_all_errs('quadratic')
 
 
 
@@ -113,7 +86,7 @@ fig, ax = plot_single_light_curve(flux_data, time_data, all_errors_dict, plt_siz
 # Bereinigen des Strings und Hinzufügen einer Dateiendung
 
 output_plot_dir = pathlib.Path("outputs/plots")
-truths_str = "_".join([f"{key}_{str(value).replace('[', '').replace(']', '').replace(', ', '_').replace(' ', '_')}" for key, value in truths.items()])
+truths_str = get_name_str(truths=truths)
 light_curve_plot_name = output_plot_dir / f"light_curve_plot_sim_{truths_str}.png"
 
 if not os.path.exists(light_curve_plot_name):
@@ -159,6 +132,7 @@ mcmc_params = {
 param_names = ['ps', 'u1', 'u2']
 
 for key in all_errors_dict:
+    
     # iterate through all available error envelopes for the default quadratic parameterization
     #TODO: maybe nicer way to pass param_names
     posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
@@ -171,7 +145,7 @@ for key in all_errors_dict:
     model_name = f"%.0fppm_quadratic_model" % (all_errors_dict[key][0]*1e6)
 
     # Use unflattened samples to check convergence
-    gr_stat = check_convergence(unflattened_samples, model_name)
+    gr_stat = check_convergence(unflattened_samples, model_name, param_names)
 
     # Check if Gelman-Rubin statistic is below convergence threshold
     if gr_stat.max() < 1.1:
@@ -211,18 +185,12 @@ for key in all_errors_dict:
     model_name = f"%.0fppm_kipping_model" % (all_errors_dict[key][0]*1e6)
 
     # Use unflattened samples to check convergence
-    gr_stat = check_convergence(unflattened_samples, model_name)
+    gr_stat = check_convergence(unflattened_samples, model_name, param_names)
 
 
     if gr_stat.max() < 1.1:
         print("Chains are well-mixed.")
     else:
         print("Chains may not have converged. Check diagnostics.")
-#%%
-
-# TODO: Implement further statistics & plots, e.g. gelman-rubin, autocorrelation, etc. to check for convergence
-# => DONE!
-
-
 #%%
 

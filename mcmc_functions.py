@@ -140,4 +140,4 @@ def create_corner_plot(posterior_samples, truths, errval, transform=False):
 
     if not os.path.exists(corner_plot_name):
         fig.savefig(corner_plot_name, dpi=300)
-        return
+    return

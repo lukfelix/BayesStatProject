@@ -1,7 +1,8 @@
 outputs/plots/*.jpg
 
 *.pyc
+*steps.npy   # not uploading these as they could become large (order of 10s of MB) depending on chain length
 
 __pycache__/
 
-myenv/*
+myenv/
