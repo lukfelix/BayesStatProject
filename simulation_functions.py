@@ -1,6 +1,8 @@
 import numpy as np
 import batman
 import matplotlib.pyplot as plt
+import pathlib
+import os
 
 # Initializes the parameters for the transit simulation with the batman package
 def initialize_parameters(truths, fixed):
@@ -83,5 +85,43 @@ def plot_single_light_curve(flux_data, time_data, all_errors_dic, plt_size=(10, 
 
     return fig, ax
 
+def save_simdata(time, flux, error_dict, name):
+    # Create the directory
+    output_dir = pathlib.Path("outputs/data")
+    output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Save time data, flux data and error envelopes
+    for key, error_data in error_dict.items():
+        filename = 'simdata_' + name + '_' + key.replace(" ", "_") + ".npy"  # e.g., "simdata_quadratic_1_ppm.npy"
+        np.save(output_dir / filename, np.array([time, flux, error_data]))
+    return
 
+def load_single_simdata(filename):
+    """Loads one single data file into the three equal length arrays"""
+    [time, flux, err] = np.load('outputs/data/' + filename)
+    return time, flux, err
+
+def load_simdata_all_errs(name):
+    """
+    loads time, flux and errordict in same format as used in analysis.py 
+    """
+    time, flux, err = {}, {}, {}
+    
+    available_files = os.listdir('outputs/data' )
+    for file in available_files:
+        if ('simdata_' + name + '_' in file) and (file.endswith('_ppm.npy')):
+            loaded_time, loaded_flux, loaded_err = load_single_simdata(file)
+            ppms = file.replace('simdata_' + name + '_', '').replace('_ppm.npy', ' ppm')
+
+            time[ppms] = loaded_time
+            flux[ppms] = loaded_flux
+            err[ppms] = loaded_err
+
+    # TODO: potential safety measure to make sure that only same data arrays have been loaded
+    # at the moment just returns the last time / flux arrays, which should be fine unless we 
+
+    # only return errors as dict
+    return time[ppms], flux[ppms], err
+
+def get_name_str(truths):
+    return "_".join([f"{key}_{str(value).replace('[', '').replace(']', '').replace(', ', '_').replace(' ', '_')}" for key, value in truths.items()])

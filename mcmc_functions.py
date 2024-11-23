@@ -2,6 +2,7 @@ import numpy as np
 import emcee
 import corner
 import os
+import pathlib
 
 from model_functions import full_model
 
@@ -51,7 +52,7 @@ def log_posterior(theta, t, y, yerr, params, model, priors, transform):
     return lp + log_likelihood(theta, t, y, yerr, params, model, transform)
 
 def run_mcmc(time_data, flux_data, error_data, model,
-             model_params, priors, mcmc,
+             model_params, priors, mcmc, param_names,
              transform=False):
     """
     In this function we take all the necessary inputs for running the mcmc provided in the analysis.py file.
@@ -63,6 +64,7 @@ def run_mcmc(time_data, flux_data, error_data, model,
     model_params    :   batman param instance (needs to already contain the fixed parameter values)
     priors          :   dict of planet radii and limb-drakening priors, can either be gaussian or uniform atm
     mcmc            :   dict of mcmc parameters ( 'ndim', 'nwalkers', 'nsteps', 'burn_in_frac')
+    param_names     :   names of parameters to be fitted
     transform=False :   whether or not the limb-darkening is analysed in 
                             the transformed Kipping parameterization (True) 
                             or default quadratic (False)
@@ -92,12 +94,24 @@ def run_mcmc(time_data, flux_data, error_data, model,
     # Get the samples
     samples = sampler.get_chain(discard=int(mcmc['burn_in_frac'] * mcmc['nsteps']))     # discard the burn-in phase
 
+    # Get autocorrelation-time
+    tau = sampler.get_autocorr_time()
+    print("Integrated auto-correlation time")
+    for name, iat in zip(param_names, tau):
+        print(f"{name}: {iat:.1f}")
+
     # Flatten the samples (remove the walkers)
     flattened_samples = samples.reshape(-1, len(priors))  # flatten the samples for plotting
     
-    # TODO: save samples in some format for more flexible plotting and post-processing
+    # TODO: save samples in some format for more flexible plotting and post-processing =>DONE!
+    samples_output_dir = pathlib.Path("outputs/samples")
+    samples_output_dir.mkdir(parents=True, exist_ok=True)
 
-    return flattened_samples
+    sample_file_name = samples_output_dir / f"samples_{mcmc['ndim']}params_{mcmc['nsteps']}steps.npy"
+    np.save(sample_file_name, flattened_samples)
+    print(f"Saved samples to {sample_file_name}")
+
+    return flattened_samples, samples
 
 def create_corner_plot(posterior_samples, truths, errval, transform=False):
     """
@@ -126,4 +140,4 @@ def create_corner_plot(posterior_samples, truths, errval, transform=False):
 
     if not os.path.exists(corner_plot_name):
         fig.savefig(corner_plot_name, dpi=300)
-        return
+    return
