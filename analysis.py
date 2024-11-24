@@ -88,12 +88,7 @@ params, t_array = initialize_parameters(truths, fixed_params)
 ################ Step 2 - Create Model & Simulate Light Curve ##################
 
 # Initialize the batman model using the parameters from above
-ncpu = 1 # number of cores available for batman (set to 1 if you either want to be slow or don't have openMP)
-model = batman.TransitModel(params, t_array, nthreads = int(ncpu))    #initializes model for the simulation
-
-# Generate data
-flux_data = simulate_light_curve(model, params)         # Simulate the light curve using the batman model and the parameters to generate the data
-time_data = t_array                                     # Time array for the simulation
+model, time_data, flux_data = initialize_model(params, t_array)    #initializes model for the simulation
 
 # Define the error envelopes for the light curve ranging from 1-1000 ppm & store them in a dictionary. 
 all_errors_dict = {
