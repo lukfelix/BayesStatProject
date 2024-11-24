@@ -144,4 +144,6 @@ def load_simdata_all_errs(name):
     return time[ppms], flux[ppms], err
 
 def get_name_str(truths):
+    if truths==None:
+        return None
     return "_".join([f"{key}_{str(value).replace('[', '').replace(']', '').replace(', ', '_').replace(' ', '_')}" for key, value in truths.items()])

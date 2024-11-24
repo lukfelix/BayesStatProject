@@ -3,7 +3,9 @@ outputs/plots/*.jpg
 *.pyc
 
 # not saving samples as the files get >10 MB, which unnecessarily slows download speed when cloning
+# same for trace plots, they are smaller but still >1 MB each
 outputs/samples/*
+outputs/plots/traces*
 
 __pycache__/
 

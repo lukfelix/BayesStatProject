@@ -7,8 +7,14 @@ def kipping_to_quad(q1, q2):
     Source: https://ui.adsabs.harvard.edu/abs/2013MNRAS.435.2152K/abstract
     Parameter spaces for q are [0, 1] but for u it's [-3, 3]
     """
-    u1 = 2*np.sqrt(q1)*q2
-    u2 = np.sqrt(q1)*(1 - 2*q2)
+    try:
+        u1 = 2*np.sqrt(q1)*q2
+        u2 = np.sqrt(q1)*(1 - 2*q2)
+    except:
+        # set u1 and u2 to zero for the case where q2 is not defined
+        u1 = 0
+        u2 = 0
+
     return u1, u2
 
 def quad_to_kipping(u1, u2):
@@ -21,7 +27,13 @@ def quad_to_kipping(u1, u2):
     Parameter spaces for q are [0, 1] but for u it's [-3, 3]
     """
     q1 = (u1 + u2)**2
-    q2 = 0.5 * u1 / (u1 + u2)
+
+    # the case where u1 and u2 are 0 is handled here 
+    # (only comes up when converting between the truth dict as it's never exactly 0 otherwise)
+    try:
+        q2 = 0.5 * u1 / (u1 + u2)
+    except:
+        q2 = None
     return q1, q2
 
 

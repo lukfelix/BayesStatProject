@@ -1,10 +1,6 @@
 #%%
 
 # Import necessary libraries
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib
-import batman
 import os
 
 # Import predefined functions from other files
@@ -12,44 +8,10 @@ from simulation_functions import *          # functions for simulating the light
 from model_functions import *               # functions for evaluation of the model
 from mcmc_functions import *                # functions used for the MCMC analysis
 from check_convergence import *             # functions used for checking convergence
-#%%
-
-def run_full_routine(truths, model_params, model, priors, mcmc, 
-                     time_data, flux_data, errors_dict, 
-                     transform=False, save=None):
-    
-    for key in errors_dict:
-        # iterate through all available error envelopes for the default quadratic parameterization
-        if save == None:
-            posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, errors_dict[key], model,
-                                                                model_params, priors, mcmc,
-                                                                transform=transform)
-        else:
-            posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, errors_dict[key], model,
-                                                                model_params, priors, mcmc,
-                                                                transform=transform, save=save+'_'+key)
-
-        # Plot the corner plot
-        create_corner_plot(posterior_samples, truths, errors_dict[key][0]*1e6, transform=transform)
-
-        if transform:
-            model_name = f"%.0fppm_kipping_model" % (errors_dict[key][0]*1e6)
-        else:
-            model_name = f"%.0fppm_quadratic_model" % (errors_dict[key][0]*1e6)
-
-        # Use unflattened samples to check convergence
-        gr_stat = check_convergence(unflattened_samples, model_name, truths.keys())
-
-        # Check if Gelman-Rubin statistic is below convergence threshold
-        if gr_stat.max() < 1.1:
-            print("Chains are well-mixed.")
-        else:
-            print("Chains may not have converged. Check diagnostics.")
-
-    return
-    
+from helper_functions import *
 
 #%%
+
 ################################################################################
 #################### SIMULATING TRANSIT LIGHT CURVE(S) #########################
 ################################################################################
@@ -124,7 +86,7 @@ if not os.path.exists(light_curve_plot_name):
 
 #%%
 ################################################################################
-######################### Run Quadratic Limb-Drkening ##########################
+########## Run both Quadratic and Kipping Cases for no limb darkening ##########
 ################################################################################
 
 # choose Priors
@@ -145,36 +107,11 @@ mcmc_params = {
     'burn_in_frac':0.6,
 }
 
-# iterate over all errors, creating output plots, may take a while!
-# if you want to save the file, additionally pass the argument save=get_name_str(truths)
-# run_full_routine(truths, params, model, param_priors, mcmc_params, 
-#                  time_data, flux_data, all_errors_dict, 
-#                  transform=False)#, save=get_name_str(truths))
-#%%
+run_quad_kipping_routine(truths, params, model, param_priors, mcmc_params, 
+                             time_data, flux_data, all_errors_dict)
+
 ################################################################################
-######################### Run Kipping Limb-Drkening ############################
 ################################################################################
-
-# update priors and ground truth to Kipping
-param_priors = {
-    'ps':        ['uni', 0., 0.5],    # stellar radii
-    'u1':        ['uni', 0., 1.],     # limb darkening
-    'u2':        ['uni', 0., 1.],     # limb darkening
-}
-
-truths = {
-    'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
-    'u1':0,                          # limb-darkening coefficients: q1 
-    'u2':None,                       # limb-darkening coefficients: q2
-    # TODO: q2 is not actually well defined... need to calculate the limes of 0.5 * u1 / (u1 + u2) for u1 & u2 -> 0
-    # but it diverges (gives different results depending which param you let go to 0 first)
-}
-
-# iterate over all errors, creating output plots, may take a while!
-# if you want to save the file, additionally pass the argument save=get_name_str(truths)
-run_full_routine(truths, params, model, param_priors, mcmc_params, 
-                 time_data, flux_data, all_errors_dict, 
-                 transform=True)#, save=get_name_str(truths))
 
 #%%
 
