@@ -58,22 +58,154 @@ def run_full_routine(truths, model_params, model, priors, mcmc,
 # Planet Name: 					HD-209458b
 
 # Load the data from the csv file
-data = np.genfromtxt('TESS_data/data.csv', delimiter=',')
+data = np.genfromtxt('outputs/data_TESS/data.csv', delimiter=',')
+time_data, flux_data, flux_err_data = data[1:, 0], data[1:, 1], data[1:, 2] # Skip the header & extract the relevant columns
 
-# Preprocess & clean the data
-time_data, flux_data, flux_err_data = preprocess_and_clean_data(data)
+# Clean the data (remove NaN values)
+time_data_noNaN, flux_data_noNaN, flux_err_noNaN = clean_data(time_data, flux_data, flux_err_data)
 
-# Plot the cleaned data
-fig, ax = plot_single_light_curve_with_zoom(time_data, flux_data, flux_err_data, plt_size=(20, 10),zoom_range=(2826.65, 2826.92))
+# Normalize the time data & flux data & err data for easier post-processing
+time_data_norm_noNaN = time_data_noNaN - time_data_noNaN[0]
+
+min_val = np.min(flux_data_noNaN)
+max_val = np.max(flux_data_noNaN)
+
+flux_data_norm_noNaN = (flux_data_noNaN - min_val) / (max_val - min_val)
+flux_err_norm_noNaN = flux_err_noNaN / (max_val - min_val)
+
+# Plot the cleaned data, zoom_range=(2826.65, 2826.92)
+fig, ax = plot_single_light_curve_with_zoom(time_data_norm_noNaN, flux_data_norm_noNaN, flux_err_norm_noNaN, plt_size=(20, 10),zoom_range=(5.7, 7.3))
+
+# Save the plot
+output_plot_dir = pathlib.Path("outputs/plots_TESS")
+tess_data_plot_name = output_plot_dir / "tess_data_plot.png"
+if not os.path.exists(tess_data_plot_name):
+    fig.savefig(tess_data_plot_name, dpi=300)
+
+
+#%%
+# This is the original data with NaN values but normalized: 
+time_data_norm = time_data - time_data[0]
+flux_data_norm = (flux_data - min_val) / (max_val - min_val)
+flux_err_norm = flux_err_data / (max_val - min_val)
+
+# Check for NaN values only for the first three columns
+if np.isnan(flux_err_norm).any():
+    # Count the number of NaN entries
+    nan_count = np.isnan(flux_err_norm).sum()
+    print(f"Number of NaN entries: {nan_count}")
+else:
+    print("No NaN entries found.")
+
+# Check if everything still makes sense and no additional NaN values are present
+assert len(flux_data_norm)-len(flux_data_norm_noNaN) == np.isnan(flux_err_norm).sum()
+
+# %%
+# Apparently the data contains some jumps (not the NaN values, but actual jumps also for the time). first need to deal with this: 
+import sys
+np.set_printoptions(threshold=sys.maxsize)
+# Step 1: Compute the differences between consecutive time points
+# Define the threshold
+threshold = 0.00139  # Detect increments larger than this value
+
+# Compute the differences between consecutive time points
+time_diffs = np.diff(time_data_norm)
+
+# Detect where increments are larger than the threshold
+large_jump_indices = np.where(time_diffs > threshold)[0]  # Indices of large jumps
+
+# print("Time differences:", time_diffs)
+print("Indices where increments are larger than threshold:", large_jump_indices)
+print("Positions in time array with large jumps:", time_data_norm[large_jump_indices])
+
+#print the size of the jumps
+print("Size of the jumps:", time_diffs[large_jump_indices])
+
+
+# Step 2: Calculate the average size of time increments
+# Calculate the average size of time increments
+average_time_increment = np.mean(time_diffs[:2021])
+print("Average time increment:", average_time_increment)
+
+# Step 3: Correct the time data by replacing the large jumps with the average time increment    
+
+
+
+
+
+#%%
+################################################################################
+################## TESS DATA - GAUSSIAN PROCESS FIT to GAPS ####################
+################################################################################
+
+""" 
+Before starting here a short summary: 
+- 'time_data_norm_noNaN', 'flux_data_norm_noNaN' and 'flux_err_norm_noNaN' are the normalized data without NaN values.
+- 'time_data_norm', 'flux_data_norm' and 'flux_err_norm' are the normalized data with NaN values.
+- min_val and max_val are the minimum and maximum values of the flux data which we can use to normalize back (we have no need to normalize back the time data)
+"""
+
+from tinygp import GaussianProcess, kernels
+import jax.numpy as jnp
+
+
+fig, ax = plot_simple_light_curve(time_data_norm, flux_data_norm, plt_size=(10, 5))
+
+# Now the goal here is to first save all NaN entries (for which we want to do the GP fit). Then, we want to set those values to 0 and then discard all TRANSITS from the dataset (including those NaN values which are now 0). Then we do the Gaussian Process fit to the gaps and then we can predict the missing values and again put back in the transits.
+
+# Save the NaN entries
+# Step 1: Detect NaN values and save their indices
+original_NaN_indices = np.where(np.isnan(flux_data_norm))[0]
+print(len(original_NaN_indices))
+
+# Step 2: Set NaN values to 0
+flux_data_norm[original_NaN_indices] = 0
+fig, ax = plot_simple_light_curve(time_data_norm, flux_data_norm, plt_size=(10, 5))
+
 
 
 
 #%%
 
+# define the length scale for the GP
+l = 0.002
+sigma = 500.0
+period = 3.52474955
 
+# Define the Kernel
+kernel = (
+    sigma**2 + kernels.ExpSquared(scale=l)  # RBF for smooth variations
+    + sigma**2 * kernels.ExpSineSquared(scale=period, gamma=1.0)
+)
 
+# Normalize flux
+flux_mean = np.mean(flux_data)
+flux_std = np.std(flux_data)
+flux_obs_normalized = (flux_data - flux_mean) / flux_std
 
+# Initialize the GP
+gp = GaussianProcess(kernel, time_data, diag=flux_err_data**2)  # Include observational noise in diag
 
+# Condition the GP on data
+gp_conditioned = gp.condition(y=flux_obs_normalized, X_test=time).gp
+
+# Predict missing values
+mean, std = gp_conditioned.loc, jnp.sqrt(gp_conditioned.variance)
+
+# Denormalize predicted flux
+mean = mean * flux_std + flux_mean
+std = std * flux_std
+
+# Plot Results
+plt.figure(figsize=(10, 6))
+plt.plot(time_data, flux_data, ".k", alpha=0.5, label="Observed Data")
+plt.plot(time, mean, "-r", label="GP Prediction (mean)")
+plt.fill_between(time, mean - std, mean + std, color="r", alpha=0.2, label="Uncertainty")
+plt.legend()
+plt.xlabel("Time")
+plt.ylabel("Flux")
+plt.title("Transit Lightcurve Gap Filling with GP")
+plt.show()
 
 
 #%%

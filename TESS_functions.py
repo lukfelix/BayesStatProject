@@ -5,11 +5,9 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 
 # Function to preprocess and clean the TESS data
-def preprocess_and_clean_data(data):
+def clean_data(time_data, flux_data, flux_err_data):
 
-    data = data[1:]     # remove header
-    data = data[:,:3]   # only need first three columns (time, flux, flux_err)
-    print("Shape of dataset: ", data.shape)
+    data = np.column_stack((time_data, flux_data, flux_err_data))
 
     # Check for NaN values only for the first three columns
     if np.isnan(data).any():
@@ -35,44 +33,32 @@ def preprocess_and_clean_data(data):
 
 #Plotting the TESS data
 
-# # Function to plot the simulated light curve with a zoomed-in inset
-# def plot_single_light_curve(time_data, flux_data, flux_err_data, plt_size=(10, 5)):
+# Function to plot the simulated light curve with a zoomed-in inset
+def plot_simple_light_curve(time_data, flux_data, plt_size=(10, 5)):
     
-#     # Create main plot
-#     fig, ax = plt.subplots(figsize=plt_size)
+    # Create main plot
+    fig, ax = plt.subplots(figsize=plt_size)
 
-#     # Plot the flux with error bars
-#     ax.errorbar(
-#         time_data, flux_data, yerr=flux_err_data, fmt='o', capsize=1, capthick=0.5, elinewidth=0.5, 
-#         color='orange', label='Flux with Errors', markersize=1, alpha=0.6
-#     )
+    # Overlay the main line
+    ax.plot(time_data, flux_data, linestyle='-', linewidth=0.5, color='black', label='Flux')
 
-#     # Overlay the main line
-#     ax.plot(time_data, flux_data, linestyle='-', linewidth=1.5, color='blue', label='Flux')
+    # Customize appearance
+    ax.set_xlabel("Time", fontsize=12)
+    ax.set_ylabel("Flux", fontsize=12)
+    ax.set_title("Flux vs Time with Error Bars", fontsize=14)
+    ax.legend(fontsize=10)
 
-#     # Customize appearance
-#     ax.set_xlabel("Time", fontsize=12)
-#     ax.set_ylabel("Flux", fontsize=12)
-#     ax.set_title("Flux vs Time with Error Bars", fontsize=14)
-#     ax.legend(fontsize=10)
+    # Tweak axes for better presentation
+    ax.tick_params(axis='both', which='major', labelsize=10)
+    ax.grid(visible=True, linestyle='--', alpha=0.5)  # Add a subtle grid for reference
 
-#     # Tweak axes for better presentation
-#     ax.tick_params(axis='both', which='major', labelsize=10)
-#     ax.grid(visible=True, linestyle='--', alpha=0.5)  # Add a subtle grid for reference
+    # Save the figure for publication
+    plt.tight_layout()  # Adjust layout to avoid overlap
+    ax.legend()
 
-#     # Save the figure for publication
-#     plt.tight_layout()  # Adjust layout to avoid overlap
-#     ax.legend()
+    plt.show()
 
-
-
-#     # axins.set_xlim(-zoom_range, zoom_range)
-#     # axins.set_ylim(min(flux_data)-0.0012, min(flux_data)+0.0012)  # Set y-limits; adjust the factor as needed
-#     # axins.set_title("Zoom at Transit")
-
-#     plt.show()
-
-#     return fig, ax
+    return fig, ax
 
 
 # Function to plot the simulated light curve with a zoomed-in inset
@@ -91,7 +77,7 @@ def plot_single_light_curve_with_zoom(time_data, flux_data, flux_err_data, plt_s
     ax.plot(time_data, flux_data, linestyle='-', linewidth=1.5, color='black', label='Flux')
 
     # Customize appearance
-    ax.set_xlabel("Time", fontsize=12)
+    ax.set_xlabel("Time [days]", fontsize=12)
     ax.set_ylabel("Flux", fontsize=12)
     ax.set_title("Flux vs Time with Error Bars", fontsize=14)
     ax.legend(fontsize=10)
@@ -129,6 +115,10 @@ def plot_single_light_curve_with_zoom(time_data, flux_data, flux_err_data, plt_s
     plt.show()
 
     return fig, ax
+
+
+
+########### FUNCTIONS FOR GAUSSIAN PROCESS REGRESSION ############
 
 
 
