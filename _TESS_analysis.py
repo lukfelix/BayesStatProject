@@ -104,6 +104,10 @@ assert len(flux_data_norm)-len(flux_data_norm_noNaN) == np.isnan(flux_err_norm).
 # Apparently the data contains some jumps (not the NaN values, but actual jumps also for the time). first need to deal with this: 
 import sys
 np.set_printoptions(threshold=sys.maxsize)
+
+# Step 0: Check that time data is mononically increasing
+assert np.all(np.diff(time_data_norm) > 0)
+
 # Step 1: Compute the differences between consecutive time points
 # Define the threshold
 threshold = 0.00139  # Detect increments larger than this value
@@ -128,6 +132,11 @@ average_time_increment = np.mean(time_diffs[:2021])
 print("Average time increment:", average_time_increment)
 
 # Step 3: Correct the time data by replacing the large jumps with the average time increment    
+# Manually replace each of the three gaps with the average time increment
+desired_incremenet = average_time_increment
+
+# Replace the first gap
+print(time_data_norm[4656]-time_data_norm[4657])
 
 
 
