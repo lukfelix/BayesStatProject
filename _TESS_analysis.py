@@ -110,7 +110,7 @@ assert np.all(np.diff(time_data_norm) > 0)
 
 # Step 1: Compute the differences between consecutive time points
 # Define the threshold
-threshold = 0.00139  # Detect increments larger than this value
+threshold = 0.003  # Detect increments larger than this value
 
 # Compute the differences between consecutive time points
 time_diffs = np.diff(time_data_norm)
@@ -133,13 +133,111 @@ print("Average time increment:", average_time_increment)
 
 # Step 3: Correct the time data by replacing the large jumps with the average time increment    
 # Manually replace each of the three gaps with the average time increment
-desired_incremenet = average_time_increment
 
+#################################################### 1st gap
 # Replace the first gap
-print(time_data_norm[4656]-time_data_norm[4657])
+gap_1 = time_data_norm[4657] - time_data_norm[4656]  # Size of the gap
+num_intervals_1 = int(gap_1 // average_time_increment)  # Number of intervals that fit
+adjusted_interval_1 = gap_1 / (num_intervals_1 + 1)
+
+# Generate new points with the adjusted interval
+new_points_1 = np.linspace(time_data_norm[4656] + adjusted_interval_1, time_data_norm[4657] - adjusted_interval_1, num_intervals_1)
+
+# Insert new points into the array
+time_data_norm_longer_1 = np.insert(time_data_norm, 4657, new_points_1)
+
+print("Resulting Array:", time_data_norm_longer_1[4657] - time_data_norm_longer_1[4656])
+print("Length of original Array:", len(time_data_norm))
+print("Length of new Array:", len(time_data_norm_longer_1))
+
+# Create an array of NaNs for the new points
+nan_array = np.full(len(new_points_1), np.nan)
+
+# Insert NaNs into the data array
+flux_data_norm_longer_1 = np.insert(flux_data_norm, 4657, nan_array)
+flux_err_norm_longer_1 = np.insert(flux_err_norm, 4657, nan_array)
+
+print("Length of original flux Array:", len(flux_data_norm))
+print("Length of new flux Array:", len(flux_data_norm_longer_1))
+
+# check if it worked
+time_diffs = np.diff(time_data_norm_longer_1)
+large_jump_indices = np.where(time_diffs > threshold)[0]  # Indices of large jumps
+print("Indices where increments are larger than threshold:", large_jump_indices)
 
 
+#################################################### 2nd gap
+# Replace the second gap
+gap_2 = time_data_norm_longer_1[9544] - time_data_norm_longer_1[9543]  # Size of the gap
+num_intervals_2 = int(gap_2 // average_time_increment)  # Number of intervals that fit
+adjusted_interval_2 = gap_2 / (num_intervals_2 + 1)
 
+# Generate new points with the adjusted interval
+new_points_2 = np.linspace(time_data_norm_longer_1[9543] + adjusted_interval_2, time_data_norm_longer_1[9544] - adjusted_interval_2, num_intervals_2)
+
+# Insert new points into the array
+time_data_norm_longer_2 = np.insert(time_data_norm_longer_1, 9544, new_points_2)
+
+print("Resulting Array:", time_data_norm_longer_2[9544] - time_data_norm_longer_2[9543])
+print("Length of original Array:", len(time_data_norm_longer_1))
+print("Length of new Array:", len(time_data_norm_longer_2))
+
+# Create an array of NaNs for the new points
+nan_array = np.full(len(new_points_2), np.nan)
+
+# Insert NaNs into the data array
+flux_data_norm_longer_2 = np.insert(flux_data_norm_longer_1, 9544, nan_array)
+flux_err_norm_longer_2 = np.insert(flux_err_norm_longer_1, 9544, nan_array)
+
+print("Length of original flux Array:", len(flux_data_norm_longer_1))
+print("Length of new flux Array:", len(flux_data_norm_longer_2))
+
+# check if it worked
+time_diffs = np.diff(time_data_norm_longer_2)
+large_jump_indices = np.where(time_diffs > threshold)[0]  # Indices of large jumps
+print("Indices where increments are larger than threshold:", large_jump_indices)
+
+
+#################################################### 3rd gap
+# Replace the third gap
+gap_3 = time_data_norm_longer_2[14847] - time_data_norm_longer_2[14846]  # Size of the gap
+
+num_intervals_3 = int(gap_3 // average_time_increment)  # Number of intervals that fit
+adjusted_interval_3 = gap_3 / (num_intervals_3 + 1)
+
+# Generate new points with the adjusted interval
+new_points_3 = np.linspace(time_data_norm_longer_2[14846] + adjusted_interval_3, time_data_norm_longer_2[14847] - adjusted_interval_3, num_intervals_3)
+
+# Insert new points into the array
+time_data_norm_longer_3 = np.insert(time_data_norm_longer_2, 14847, new_points_3)
+
+print("Resulting Array:", time_data_norm_longer_3[14847] - time_data_norm_longer_3[14846])
+print("Length of original Array:", len(time_data_norm_longer_2))
+print("Length of new Array:", len(time_data_norm_longer_3))
+
+# Create an array of NaNs for the new points
+nan_array = np.full(len(new_points_3), np.nan)
+
+# Insert NaNs into the data array
+flux_data_norm_longer_3 = np.insert(flux_data_norm_longer_2, 14847, nan_array)
+flux_err_norm_longer_3 = np.insert(flux_err_norm_longer_2, 14847, nan_array)
+
+
+print("Length of original flux Array:", len(flux_data_norm_longer_2))
+print("Length of new flux Array:", len(flux_data_norm_longer_3))
+
+# check if it worked
+time_diffs = np.diff(time_data_norm_longer_3)
+large_jump_indices = np.where(time_diffs > threshold)[0]  # Indices of large jumps
+print("Indices where increments are larger than threshold:", large_jump_indices)
+
+
+NEW_time_data_norm = time_data_norm_longer_3
+NEW_flux_data_norm = flux_data_norm_longer_3
+NEW_flux_err_norm = flux_err_norm_longer_3
+
+
+      
 
 
 #%%
@@ -158,66 +256,185 @@ from tinygp import GaussianProcess, kernels
 import jax.numpy as jnp
 
 
-fig, ax = plot_simple_light_curve(time_data_norm, flux_data_norm, plt_size=(10, 5))
+fig, ax = plot_simple_light_curve(NEW_time_data_norm, NEW_flux_data_norm, plt_size=(10, 5))
 
 # Now the goal here is to first save all NaN entries (for which we want to do the GP fit). Then, we want to set those values to 0 and then discard all TRANSITS from the dataset (including those NaN values which are now 0). Then we do the Gaussian Process fit to the gaps and then we can predict the missing values and again put back in the transits.
 
 # Save the NaN entries
 # Step 1: Detect NaN values and save their indices
-original_NaN_indices = np.where(np.isnan(flux_data_norm))[0]
+original_NaN_indices = np.where(np.isnan(NEW_flux_data_norm))[0]
 print(len(original_NaN_indices))
 
 # Step 2: Set NaN values to 0
-flux_data_norm[original_NaN_indices] = 0
-fig, ax = plot_simple_light_curve(time_data_norm, flux_data_norm, plt_size=(10, 5))
+NEW_flux_data_norm[original_NaN_indices] = -0.5
+fig, ax = plot_simple_light_curve(NEW_time_data_norm, NEW_flux_data_norm, plt_size=(10, 5))
 
 
+# Step 3: Discard all transits & 0 values from the dataset (including the NaN values which are now 0)
+# First:  Discard the transits by first determining the indice of the "middle transit time", then determine all time corresponding to the transit and then discard them and also discard a bit more to be sure
 
+# Define the transit time
+
+# fig, ax = plt_simple_light_curve(NEW_time_data_norm[(1000+2530*7):(1200+2530*7)], NEW_flux_data_norm[(1000+2530*7):(1200+2530*7)], plt_size=(10, 5))
+
+# transit one: 1.45 - 1.59
+# transit two: 4.97 - 5.12
+# transit three: 8.49 - 8.64
+# transit four: 12.02 - 12.17
+# transit five: 15.54 - 15.69
+# transit six: 19.07 - 19.22
+# transit seven: 22.59 - 22.74
+# transit eight: 26.12 - 26.27
+
+# Transit intervals
+transit_intervals = [
+    (1.45, 1.59),
+    (4.97, 5.12),
+    (8.49, 8.64),
+    (12.02, 12.17),
+    (15.54, 15.69),
+    (19.07, 19.22),
+    (22.59, 22.74),
+    (26.12, 26.27),
+]
+cleaned_time_data = NEW_time_data_norm
+cleaned_flux_data = NEW_flux_data_norm
+
+# Set flux to -0.5 for transit intervals
+for start, end in transit_intervals:
+    # Find indices where time is within the interval
+    indices_transit = np.where((cleaned_time_data >= start) & (cleaned_time_data <= end))[0]
+    # Update flux values at these indices
+    cleaned_flux_data[indices_transit] = -0.9
+
+# Find the indices of the transits
+fig, ax = plot_simple_light_curve(cleaned_time_data, cleaned_flux_data, plt_size=(10, 5))
 
 #%%
 
-# define the length scale for the GP
-l = 0.002
-sigma = 500.0
-period = 3.52474955
+# original_NaN_indices is the list of all indices where we did not have a data entry originally
+# indices_transit is the list of all indices where we have a transit occuring
 
-# Define the Kernel
+# Filter the array
+filtered_flux = cleaned_flux_data[cleaned_flux_data <= 0.5]
+
+# Get indices of values above the threshold
+indices_stellar_flux = np.where(cleaned_flux_data > 0.5)[0]
+
+
+# Plot only the stellar flux: 
+fig, ax = plot_simple_light_curve(cleaned_time_data[indices_stellar_flux], cleaned_flux_data[indices_stellar_flux], plt_size=(12, 3))
+
+
+
+# cleaned_time_data[indices_stellar_flux]  &  cleaned_flux_data[indices_stellar_flux is now the dataset only with the stellar flux. 
+# cleaned_time_data is the time range for which we want to have all stellar flux values. 
+
+print(len(cleaned_time_data))
+print(len(cleaned_time_data[indices_stellar_flux]))
+
+#%%
+
+# Assume cleaned_time_data, cleaned_flux_data, cleaned_flux_err, and indices_stellar_flux are already loaded
+
+# Extract the data for stellar flux
+time_stellar_flux = cleaned_time_data[indices_stellar_flux]
+flux_stellar_flux = cleaned_flux_data[indices_stellar_flux]
+flux_err_stellar_flux = NEW_flux_err_norm[indices_stellar_flux]
+
+
+# Define the kernel: a combination of periodic and squared exponential kernels
 kernel = (
-    sigma**2 + kernels.ExpSquared(scale=l)  # RBF for smooth variations
-    + sigma**2 * kernels.ExpSineSquared(scale=period, gamma=1.0)
+    1.0 * kernels.ExpSquared(scale=5.0)  # Smooth variation
+    + 0.5 * kernels.ExpSineSquared(scale=10.0, gamma=1.0)  # Periodic variation
 )
 
-# Normalize flux
-flux_mean = np.mean(flux_data)
-flux_std = np.std(flux_data)
-flux_obs_normalized = (flux_data - flux_mean) / flux_std
+# Define the Gaussian Process model
+gp = GaussianProcess(kernel, time_stellar_flux, diag=flux_err_stellar_flux**2)
 
-# Initialize the GP
-gp = GaussianProcess(kernel, time_data, diag=flux_err_data**2)  # Include observational noise in diag
+# Compute the GP conditioned on the data
+gp_conditioned = gp.condition(y=flux_stellar_flux, X_test=cleaned_time_data).gp
 
-# Condition the GP on data
-gp_conditioned = gp.condition(y=flux_obs_normalized, X_test=time).gp
+mu, std = gp_conditioned.loc, jnp.sqrt(gp_conditioned.variance)
 
-# Predict missing values
-mean, std = gp_conditioned.loc, jnp.sqrt(gp_conditioned.variance)
 
-# Denormalize predicted flux
-mean = mean * flux_std + flux_mean
-std = std * flux_std
+# Plot the results
+plt.figure(figsize=(12, 6))
+plt.plot(time_stellar_flux, flux_stellar_flux, ".", label="Observed Data", color="blue", markersize=3)
+ax.fill_between(cleaned_time_data, mu-std, mu+std, alpha=0.5, label="GP prediction")
 
-# Plot Results
-plt.figure(figsize=(10, 6))
-plt.plot(time_data, flux_data, ".k", alpha=0.5, label="Observed Data")
-plt.plot(time, mean, "-r", label="GP Prediction (mean)")
-plt.fill_between(time, mean - std, mean + std, color="r", alpha=0.2, label="Uncertainty")
-plt.legend()
 plt.xlabel("Time")
 plt.ylabel("Flux")
-plt.title("Transit Lightcurve Gap Filling with GP")
+plt.title("Gaussian Process Regression to Fill Gaps in Stellar Flux Data")
+plt.legend()
+plt.show()
+
+#%%
+
+# Plot the results
+plt.figure(figsize=(12, 6))
+plt.plot(time_stellar_flux, flux_stellar_flux, ".", label="Observed Data", color="blue", markersize=3)
+# plt.fill_between(cleaned_time_data, mu-std, mu+std, color = "red", alpha=0.5, label="GP Uncertainty")
+plt.plot(cleaned_time_data, mu, ".", alpha=0.5, label="GP fit", color="red", markersize=3)
+plt.ylabel("Flux")
+plt.title("Gaussian Process Regression to Fill Gaps in Stellar Flux Data")
+plt.legend()
 plt.show()
 
 
+
+
 #%%
+
+"""
+# Next TODO: 
+
+1. put everything into seperate python functions
+2. mark nicely which arrays are which of the data (normlaized, NaN, cleaned, extended, gaps, etc.)
+3. Run the Gaussian Process again 
+4. Save the data of Gaussian Process
+5. Run MCMC using Gaussian Process. data
+
+"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ################### Step 2 - Initialize Model Parameters #######################
 # Define & initialize the parameters for the light curve simulation. Based on the parameters of the paper
 
