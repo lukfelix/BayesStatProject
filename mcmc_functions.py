@@ -116,7 +116,7 @@ def run_mcmc(time_data, flux_data, error_data, model,
 
     return flattened_samples, samples
 
-def create_corner_plot(posterior_samples, truths, errval, transform=False):
+def create_corner_plot_NO_err_dic(posterior_samples, truths, transform=False):
     """
     Plotand save the corner plot of the posterior samples, showing the underlying truth values
     """
@@ -137,11 +137,14 @@ def create_corner_plot(posterior_samples, truths, errval, transform=False):
         title_kwargs={"fontsize": 10},
         truth_color='cornflowerblue',
     )
-    if transform:
-        corner_plot_name = "outputs/plots/corner_plot_kipping_%.0fppm" % (errval)
-    else:
-        corner_plot_name = "outputs/plots/corner_plot_quadratic_%.0fppm" % (errval)
 
-    if not os.path.exists(corner_plot_name):
-        fig.savefig(corner_plot_name, dpi=300)
+    # if transform:
+    #     corner_plot_name = "outputs/plots/corner_plot_kipping_%.0fppm" % (errval)
+    # else:
+    #     corner_plot_name = "outputs/plots/corner_plot_quadratic_%.0fppm" % (errval)
+
+    # if not os.path.exists(corner_plot_name):
+    #     fig.savefig(corner_plot_name, dpi=300)
+
+    fig.show()
     return

@@ -13,41 +13,7 @@ from model_functions import *               # functions for evaluation of the mo
 from mcmc_functions import *                # functions used for the MCMC analysis
 from check_convergence import *             # functions used for checking convergence
 from TESS_functions import *                # functions used for TESS data preprocessing and plotting
-#%%
 
-def run_full_routine(truths, model_params, model, priors, mcmc, 
-                     time_data, flux_data, errors_dict, 
-                     transform=False, save=None):
-    
-    for key in errors_dict:
-        # iterate through all available error envelopes for the default quadratic parameterization
-        if save == None:
-            posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, errors_dict[key], model,
-                                                                model_params, priors, mcmc,
-                                                                transform=transform)
-        else:
-            posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, errors_dict[key], model,
-                                                                model_params, priors, mcmc,
-                                                                transform=transform, save=save+'_'+key)
-
-        # Plot the corner plot
-        create_corner_plot(posterior_samples, truths, errors_dict[key][0]*1e6, transform=transform)
-
-        if transform:
-            model_name = f"%.0fppm_kipping_model" % (errors_dict[key][0]*1e6)
-        else:
-            model_name = f"%.0fppm_quadratic_model" % (errors_dict[key][0]*1e6)
-
-        # Use unflattened samples to check convergence
-        gr_stat = check_convergence(unflattened_samples, model_name, truths.keys())
-
-        # Check if Gelman-Rubin statistic is below convergence threshold
-        if gr_stat.max() < 1.1:
-            print("Chains are well-mixed.")
-        else:
-            print("Chains may not have converged. Check diagnostics.")
-
-    return
     
 
 #%%
@@ -67,11 +33,20 @@ time_data_noNaN, flux_data_noNaN, flux_err_noNaN = clean_data(time_data, flux_da
 # Normalize the time data & flux data & err data for easier post-processing
 time_data_norm_noNaN = time_data_noNaN - time_data_noNaN[0]
 
-min_val = np.min(flux_data_noNaN)
+min_val = np.min(flux_data_noNaN) + 0.01 # Add a small offset to avoid division by zero
 max_val = np.max(flux_data_noNaN)
+
+print("Min value:", min_val)
+print("Max value:", max_val)
 
 flux_data_norm_noNaN = (flux_data_noNaN - min_val) / (max_val - min_val)
 flux_err_norm_noNaN = flux_err_noNaN / (max_val - min_val)
+
+# # normalize by the average flux
+# normalization_factor = np.mean(flux_data_noNaN)
+# flux_data_norm_noNaN = flux_data_noNaN / normalization_factor
+# flux_err_norm_noNaN = flux_err_noNaN / normalization_factor
+
 
 # Plot the cleaned data, zoom_range=(2826.65, 2826.92)
 fig, ax = plot_single_light_curve_with_zoom(time_data_norm_noNaN, flux_data_norm_noNaN, flux_err_norm_noNaN, plt_size=(20, 10),zoom_range=(5.7, 7.3))
@@ -512,21 +487,52 @@ print(len(final_time_data))
 
 indices_good_flux = np.where((final_time_data < 12.75) | (final_time_data > 13.4))[0]
 
-
-
-
 print(len(indices_good_flux))
 
 fig, ax = plot_single_light_curve_with_zoom(final_time_data[indices_good_flux], final_flux_data[indices_good_flux], final_flux_err_data[indices_good_flux], plt_size=(20, 10),zoom_range=(1.4, 1.65))
 
 print(np.average(final_flux_data[indices_good_flux]))
 
+
+
+#%%
+# Need to "unnormalize" the data to put it back into the original scale
+FINAL_time_data = final_time_data
+FINAL_flux_data = final_flux_data * (max_val - min_val) + min_val
+FINAL_flux_err_data = final_flux_err_data * (max_val - min_val)
+
+# Plot the results
+plt.figure(figsize=(15, 6))
+plt.plot(FINAL_time_data, FINAL_flux_data, label="Unnormlized Flux", color="blue")
+plt.ylabel("Flux")
+plt.title("Observed Flux divided by Gaussian Process Flux")
+plt.legend()
+plt.show()
+
+#%%
+print(len(FINAL_time_data))
+print(len(NEW_flux_data_norm))
+# now normalize the data such that the average stellar flux is 1
+mean_stellar_flux = np.mean(FINAL_flux_data[indices_stellar_flux])
+
+FINAL_flux_data = FINAL_flux_data / mean_stellar_flux
+FINAL_flux_err_data = FINAL_flux_err_data / mean_stellar_flux
+
 #%%
 
-# FINAL DATA
-FINAL_time_data_ = final_time_data[indices_good_flux]
-FINAL_flux_data = final_flux_data[indices_good_flux]
-FINAL_flux_err_data = final_flux_err_data[indices_good_flux]
+# FINAL DATA is wheen we discard this small patch that is not so pretty.
+FINAL_time_data = final_time_data[indices_good_flux]
+FINAL_flux_data = FINAL_flux_data[indices_good_flux]
+FINAL_flux_err_data = FINAL_flux_err_data[indices_good_flux]
+
+
+# Plot the results
+plt.figure(figsize=(15, 6))
+plt.plot(FINAL_time_data, FINAL_flux_data, label="Unnormlized Flux", color="blue")
+plt.ylabel("Flux")
+plt.title("Observed Flux divided by Gaussian Process Flux")
+plt.legend()
+plt.show()
 
 
 #%%
@@ -548,7 +554,7 @@ FINAL_flux_err_data = final_flux_err_data[indices_good_flux]
 
 
 # Save the preprocessed data
-np.save("outputs/data_TESS/FINAL_time_data.npy", FINAL_time_data_)
+np.save("outputs/data_TESS/FINAL_time_data.npy", FINAL_time_data)
 np.save("outputs/data_TESS/FINAL_flux_data.npy", FINAL_flux_data)
 np.save("outputs/data_TESS/FINAL_flux_err_data.npy", FINAL_flux_err_data)
 
