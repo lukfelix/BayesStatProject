@@ -5,6 +5,8 @@ import os
 import pathlib
 
 from model_functions import full_model
+from model_functions import compute_fisher_information
+from model_functions import kipping_to_quad
 
 # define some necessary math for priors functions
 def log_uni(x, a, b):
@@ -18,14 +20,39 @@ def log_gauss(x, mean, sigma):
 # p(D|theta)
 def log_likelihood(theta, t, y, yerr, params, model, transform):
     model_prediction = full_model(theta, params, model, transform)
+
+    # Check for NaNs in the model prediction
+    if np.any(np.isnan(model_prediction)):
+        print(f"NaN detected in model prediction for theta={theta}")
+        return -np.inf
+    
     return -0.5 * np.sum(((y - model_prediction) / yerr) ** 2)
 
 # p(theta)
-def log_prior(theta, priors):
+def log_prior(theta, priors, params, model, time_data, flux_data, error_data, use_jeffrey=False, transform=False):
     """
     evaluate priors for given paramter theta, looks unusual due to dictionary structure of priors
+    
+    Args:
+        theta: Current parameter values.
+        priors: Dictionary of prior distributions.
+        params, model, time_data, flux_data, error_data: Parameters for Jeffreys prior.
+        use_jeffreys: Boolean to toggle Jeffreys prior.
+        transform: Boolean, true for Kipping, false for quadratic
+
+    Returns:
+        Log of the prior probability.
     """
-    lp = 0.
+
+
+    # If we want to use Jeffrey priors
+    if use_jeffrey:
+        if transform:
+            return log_jeffreys_prior_kipping(theta, params, model, time_data, flux_data, error_data)
+        else: 
+            return log_jeffreys_prior(theta, params, model, time_data, flux_data, error_data)
+    
+    lp = 0.0
     for val, prior in zip(theta, priors):
         # print(val, prior)
         if priors[prior][0] == 'uni':
@@ -42,18 +69,69 @@ def log_prior(theta, priors):
             lp += ret
     return lp
 
+def log_jeffreys_prior_kipping(theta, params, model, time_data, flux_data, error_data):
+    """
+    Compute the Jeffreys prior for Kipping parameterization.
+    """
+    params.u = kipping_to_quad(theta[1], theta[2])  # Convert Kipping parameters back to quadratic
+    fisher_matrix = compute_fisher_information(params, model, time_data, flux_data, error_data)
+    
+    determinant = np.linalg.det(fisher_matrix)
+    if determinant <= 1e-10:  # Small threshold to avoid log of zero or negative
+        return -np.inf
+    
+    return 0.5 * np.log(determinant)
+
+def log_jeffreys_prior(theta, params, model, time_data, flux_data, error_data):
+    """
+    Compute the Jeffreys prior for the limb-darkening parameters.
+
+    Args:
+        theta: Current parameter estimates.
+        params: batman.TransitParams object.
+        model: batman.TransitModel object.
+        time_data: Time points of the light curve.
+        flux_data: Observed flux values.
+        error_data: Flux error values.
+
+    Returns:
+        Log of Jeffreys prior.
+    """
+    #print("Theta =", theta)
+    params.u = theta  # Set parameters to current guess
+    fisher_matrix = compute_fisher_information(params, model, time_data, flux_data, error_data)
+    
+    # Regularize Fisher matrix for stability
+    #fisher_matrix += np.eye(fisher_matrix.shape[0]) * 1e-8
+
+    # Compute determinant of the Fisher information matrix
+    determinant = np.linalg.det(fisher_matrix)
+
+    if determinant <= 1e-10:
+        #print(f"Small determinant: {determinant}, Theta = {theta}")
+        return -np.inf  # Log prior undefined for non-positive determinant
+
+    return 0.5 * np.log(determinant) # p(theta) ~ sqrt(determinante(fisher_matrix))
+
+
 # Define the final probability function as likelihood * prior ('+' due to log).
 # p(theta|D) = p(D|theta) * p(theta)
-def log_posterior(theta, t, y, yerr, params, model, priors, transform):
-    lp = log_prior(theta, priors)
+# New argument (boolean) use_jeffrey
+def log_posterior(theta, t, y, yerr, params, model, priors, transform, use_jeffrey=False):
+    lp = log_prior(theta, priors, params, model, t, y, yerr, use_jeffrey, transform)
     if not np.isfinite(lp):
         return -np.inf
+    
+    # = log_likelihood(theta, t, y, yerr, params, model, transform)
+    #if not np.isfinite(ll):
+    #    print(f"Invalid likelihood: Theta = {theta}, ll = {ll}")
+    #    return -np.inf
     # print('not inf')
     return lp + log_likelihood(theta, t, y, yerr, params, model, transform)
 
 def run_mcmc(time_data, flux_data, error_data, model,
              model_params, priors, mcmc, param_names,
-             transform=False):
+             transform=False, use_jeffrey=False):
     """
     In this function we take all the necessary inputs for running the mcmc provided in the analysis.py file.
     From there we initialize the mcmc-run and execute it, resulting in posterior samples that are returned.
@@ -68,8 +146,11 @@ def run_mcmc(time_data, flux_data, error_data, model,
     transform=False :   whether or not the limb-darkening is analysed in 
                             the transformed Kipping parameterization (True) 
                             or default quadratic (False)
+    use_jeffrey=False:  whether or not jeffrey priors should be used, default: False
 
-    Returns         :   flattened posterior samples
+    Returns:   
+        flattened_samples: flattened posterior samples
+        samples: unflattened posterior samples for convergence checks
     """
 
     # Initialize the walkers
@@ -85,8 +166,9 @@ def run_mcmc(time_data, flux_data, error_data, model,
 
     # Initialize the sampler (at the moment time_data is not being used, see "model_functions.py/full_model()", but would be necessary if one also wants to fit a linear slope)
     # args are additional inputs besides theta in the log_posterior calculation
+    # new argument use_jeffrey in args
     sampler = emcee.EnsembleSampler(mcmc['nwalkers'], mcmc['ndim'], log_posterior,
-                                    args=(time_data, flux_data, error_data, model_params, model, priors, transform))
+                                    args=(time_data, flux_data, error_data, model_params, model, priors, transform, use_jeffrey))
 
     # Run the sampler
     sampler.run_mcmc(pos, mcmc['nsteps'], progress=True)

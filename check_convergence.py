@@ -94,17 +94,4 @@ def check_convergence(samples, model_name, param_names):
     gr_stat = gelman_rubin(samples)
     print(f"Gelman-Rubin Statistic: {gr_stat}")
 
-    # Gelman-Rubin bar plot
-    fig, ax = plt.subplots()
-    ax.bar(range(ndim), gr_stat)
-    ax.set_title("Gelman-Rubin Diagnostic")
-    ax.set_xlabel("Parameter Index")
-    ax.set_ylabel("GR Statistic")
-
-    # Save Gelman-Rubin plot
-    gr_plot_path = "outputs/plots/gelman_rubin_"+str(model_name) +".png"
-    fig.savefig(gr_plot_path, dpi=300)
-    plt.close(fig)
-    print(f"Saved Gelman-Rubin plot to {gr_plot_path}")
-
     return gr_stat

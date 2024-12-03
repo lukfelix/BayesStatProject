@@ -103,7 +103,7 @@ if not os.path.exists(light_curve_plot_name):
 # [uniform, lower bound, upper bound]
 # [gauss, mean, sigma]
 param_priors = {
-    # TODO: adapt these depending on simdata => DONE, see suggestion below!
+    # TODO: adapt these depending on simdata
     'ps':        ['uni', 0., 0.5],      # stellar radii
     'u1':        ['uni', -3., 3],     # limb darkening
     'u2':        ['uni', -3., 3.],     # limb darkening
@@ -121,76 +121,154 @@ param_priors = {
 mcmc_params = {
     'ndim'        :len(param_priors),
     'nwalkers'    :4*len(param_priors),
-    'nsteps'      :100000,
+    'nsteps'      :10000,
     'burn_in_frac':0.6,
 }
 
 #%%
 ################################################################################
-######################### Run Quadratic Limb-Drkening ##########################
+#################### Run model with some parametrisation #######################
+################################################################################
+def run_parametrisation(parametrisation, param_priors, truths, param_names, use_jeffrey):
+    """
+    runs analysis for a parametrisation (quadratic or kipping) with either normal priors or jeffrey priors
+    
+    Args:
+        parametrisation: String, "quadratic" or "kipping"
+        param_priors: Priors
+        truths: True values of parameters
+        param_names: array of parameter names (as strings)
+        use_jeffreys: Boolean to toggle Jeffreys prior.
+    """ 
+    
+    if parametrisation == "quadratic":
+        transform = False
+    else:
+        transform = True
+
+    for key in all_errors_dict:
+        # iterate through all available error envelopes for the kipping parameterization
+        #TODO: maybe nicer way to pass param_names
+        posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
+                                    params, param_priors, mcmc_params, param_names,
+                                    transform=transform, use_jeffrey=use_jeffrey)
+
+        # Plot the corner plot
+        create_corner_plot(posterior_samples, truths, all_errors_dict[key][0]*1e6, transform=True)
+        
+        if parametrisation == "quadratic": 
+            if use_jeffrey:
+                model_name = f"%.0fppm_quadratic_model_jeffrey" % (all_errors_dict[key][0]*1e6)
+            else:
+                model_name = f"%.0fppm_quadratic_model" % (all_errors_dict[key][0]*1e6)
+        else: 
+            if use_jeffrey:
+                model_name = f"%.0fppm_kipping_model_jeffrey" % (all_errors_dict[key][0]*1e6)
+            else:
+                model_name = f"%.0fppm_kipping_model" % (all_errors_dict[key][0]*1e6)
+
+        # Use unflattened samples to check convergence
+        gr_stat = check_convergence(unflattened_samples, model_name, param_names)
+
+
+        if gr_stat.max() < 1.1:
+            print("Chains are well-mixed.")
+        else:
+            print("Chains may not have converged. Check diagnostics.")
+
+
+#%%
+################################################################################
+######################### Run Quadratic Limb-Darkening ##########################
 ################################################################################
 param_names = ['ps', 'u1', 'u2']
 
-for key in all_errors_dict:
-    
-    # iterate through all available error envelopes for the default quadratic parameterization
-    #TODO: maybe nicer way to pass param_names
-    posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
-                                params, param_priors, mcmc_params, param_names,
-                                transform=False)
+param_priors = {
+    # TODO: adapt these depending on simdata
+    'ps':        ['uni', 0., 0.5],      # stellar radii
+    'u1':        ['uni', -3., 3.],     # limb darkening
+    'u2':        ['uni', -3., 3.],     # limb darkening
+}
+truths = {
+    'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
+    'u':[0, 0]                       # limb-darkening coefficients: u1, u2
+}
+use_jeffrey = False
+run_parametrisation("quadratic", param_priors, truths, param_names, use_jeffrey)
 
-    # Plot the corner plot
-    create_corner_plot(posterior_samples, truths, all_errors_dict[key][0]*1e6, transform=False)
-
-    model_name = f"%.0fppm_quadratic_model" % (all_errors_dict[key][0]*1e6)
-
-    # Use unflattened samples to check convergence
-    gr_stat = check_convergence(unflattened_samples, model_name, param_names)
-
-    # Check if Gelman-Rubin statistic is below convergence threshold
-    if gr_stat.max() < 1.1:
-        print("Chains are well-mixed.")
-    else:
-        print("Chains may not have converged. Check diagnostics.")
 #%%
 ################################################################################
-######################### Run Kipping Limb-Drkening ############################
+############### Run Quadratic Limb-Darkening, Jeffrey Priors ###################
 ################################################################################
+param_names = ['ps', 'u1', 'u2']
+
+param_priors = {
+    # TODO: adapt these depending on simdata
+    'ps':        ['uni', 0., 0.5],      # stellar radii
+    'u1':        ['uni', -3., 3.],     # limb darkening
+    'u2':        ['uni', -3., 3.],     # limb darkening
+}
+truths = {
+    'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
+    'u':[0, 0]                       # limb-darkening coefficients: u1, u2
+}
+use_jeffrey = True
+run_parametrisation("quadratic", param_priors, truths, param_names, use_jeffrey)
+
+#%%
+################################################################################
+######################### Run Kipping Limb-Darkening ############################
+################################################################################
+
+param_names = ['ps', 'q1', 'q2']
 
 # update priors and ground truth to Kipping
 param_priors = {
     # TODO: adapt these depending on simdata
     'ps':        ['uni', 0., 0.5],      # stellar radii
-    'u1':        ['uni', 0., 1.],     # limb darkening
-    'u2':        ['uni', 0., 1.],     # limb darkening
+    'q1':        ['uni', 0., 1.],     # limb darkening
+    'q2':        ['uni', 0., 1.],     # limb darkening
 }
 truths = {
     'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
-    'u':[0, None]                    # limb-darkening coefficients: q1, q2 (no limb-darkening = [0, ?])
+    'u':[0, 0.5]                    # limb-darkening coefficients: q1, q2 (no limb-darkening = [0, ?])
     # TODO: q2 is not actually well defined... need to calculate the limes of 0.5 * u1 / (u1 + u2) for u1 & u2 -> 0, i guess it's 0.25?
     # 
 }
 
-for key in all_errors_dict:
-    param_names = ['ps', 'q1', 'q2']
-    # iterate through all available error envelopes for the kipping parameterization
-    #TODO: maybe nicer way to pass param_names
-    posterior_samples, unflattened_samples = run_mcmc(time_data, flux_data, all_errors_dict[key], model,
-                                params, param_priors, mcmc_params, param_names,
-                                transform=True)
+use_jeffrey = False
+run_parametrisation("kipping", param_priors, truths, param_names, use_jeffrey)
 
-    # Plot the corner plot
-    create_corner_plot(posterior_samples, truths, all_errors_dict[key][0]*1e6, transform=True)
-    
-    model_name = f"%.0fppm_kipping_model" % (all_errors_dict[key][0]*1e6)
-
-    # Use unflattened samples to check convergence
-    gr_stat = check_convergence(unflattened_samples, model_name, param_names)
-
-
-    if gr_stat.max() < 1.1:
-        print("Chains are well-mixed.")
-    else:
-        print("Chains may not have converged. Check diagnostics.")
 #%%
+################################################################################
+##################### Run Kipping Limb-Darkening Jeffrey #######################
+################################################################################
 
+
+mcmc_params = {
+    'ndim'        :len(param_priors),
+    'nwalkers'    :4*len(param_priors),
+    'nsteps'      :50000,
+    'burn_in_frac':0.6,
+}
+
+
+param_names = ['ps', 'q1', 'q2']
+
+# update priors and ground truth to Kipping
+param_priors = {
+    # TODO: adapt these depending on simdata
+    'ps':        ['uni', 0., 0.5],      # stellar radii
+    'q1':        ['uni', 0., 1.],     # limb darkening
+    'q2':        ['uni', 0., 1.],     # limb darkening
+}
+truths = {
+    'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
+    'u':[0, 0.5]                    # limb-darkening coefficients: q1, q2 (no limb-darkening = [0, ?])
+    # TODO: q2 is not actually well defined... need to calculate the limes of 0.5 * u1 / (u1 + u2) for u1 & u2 -> 0, i guess it's 0.25?
+    # 
+}
+
+use_jeffrey = True
+run_parametrisation("kipping", param_priors, truths, param_names, use_jeffrey)
+# %%
