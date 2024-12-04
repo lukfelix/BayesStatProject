@@ -10,9 +10,9 @@ def initialize_parameters(truths, fixed):
     # Define parameters for the transit simulation
     params = batman.TransitParams()       
     params.t0 = fixed['t0']                          # time of inferior conjunction
-    params.per = fixed['period']                     # orbital period (in days)
+    params.per = truths['period']                     # orbital period (in days)
     params.rp = truths['ps']                         # planet-to-star radius ratio = planet radius (in units of stellar radii)
-    params.a = fixed['a']                            # semi-major axis in stellar radii
+    params.a = truths['a']                            # semi-major axis in stellar radii
     params.inc = fixed['inc']                        # orbital inclination in degrees
     params.ecc = fixed['ecc']                        # eccentricity
     params.w = fixed['omega']                        # longitude of periastron (in degrees)
@@ -145,3 +145,22 @@ def load_simdata_all_errs(name):
 
 def get_name_str(truths):
     return "_".join([f"{key}_{str(value).replace('[', '').replace(']', '').replace(', ', '_').replace(' ', '_')}" for key, value in truths.items()])
+
+
+
+def fix_nans(time_data, flux_data, flux_err_data):
+    """
+    Remove NaN entries from the data.
+    """
+    # Remove NaN entries
+    nan_indices = np.argwhere(np.isnan(flux_data)).flatten()
+    # time_data = np.delete(time_data, nan_indices)
+    # flux_data = np.delete(flux_data, nan_indices)
+    # flux_err_data = np.delete(flux_err_data, nan_indices)
+
+    # try something else
+    flux_data[nan_indices] = 1.0
+    flux_err_data[nan_indices] = np.mean(flux_err_data[~np.isnan(flux_err_data)])
+    print(np.mean(flux_err_data[~np.isnan(flux_err_data)]))
+
+    return time_data, flux_data, flux_err_data

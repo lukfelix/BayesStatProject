@@ -75,13 +75,13 @@ fig, ax = plot_single_light_curve_with_zoom(FINAL_time_data, FINAL_flux_data, FI
 
 # choose only the first TRANSIT to test the MCMC: 
 
-time_data = FINAL_time_data[900:1300]
-flux_data = FINAL_flux_data[900:1300]
-flux_err_data = FINAL_flux_err_data[900:1300]
+# time_data = FINAL_time_data[900:1300]
+# flux_data = FINAL_flux_data[900:1300]
+# flux_err_data = FINAL_flux_err_data[900:1300]
 
-# time_data = FINAL_time_data
-# flux_data = FINAL_flux_data
-# flux_err_data = FINAL_flux_err_data
+time_data = FINAL_time_data
+flux_data = FINAL_flux_data
+flux_err_data = FINAL_flux_err_data
 
 # Plot the results
 plt.figure(figsize=(15, 6))
@@ -97,8 +97,31 @@ plt.show()
 # Check if there are any NaN values in the data
 if np.isnan(time_data).any() or np.isnan(flux_data).any() or np.isnan(flux_err_data).any():
     print("Error: NaN entries still present in the data.")
+    print("Removing NaN entries and discard the corresponding data points...")
+    print("Length of data before: ", len(time_data))
+
+    time_data, flux_data, flux_err_data = fix_nans(time_data, flux_data, flux_err_data)
+    print("Length of data after: ", len(time_data))
+
 else:
     print("No NaN entries present in the data.")
+    print("Length of data: ", len(time_data))
+
+# # #check if the data is equally spaced
+# # diffs = np.diff(time_data)
+
+# # # Check if the differences are constant
+# # is_equally_spaced = np.allclose(diffs, diffs[0])  # Allow for small numerical errors
+# # print("Equally spaced:" if is_equally_spaced else "Not equally spaced")
+
+# Plot the results
+plt.figure(figsize=(15, 6))
+plt.plot(time_data, flux_data, label="TESS HD-209458b flux data", color="blue")
+plt.axvline(x = 1.518, color = 'black', linestyle='--', label = 'approx. middle of transit')
+plt.ylabel("Flux")
+plt.title("First Transit of TESS HD-209458b")
+plt.legend()
+plt.show()
 
 #%%
 
@@ -112,15 +135,15 @@ truths = {
     'ps':0.1268,                     # Ref: ExoFOP-TESS TOI
     'u1':0.085,                          # NO REF (assuming 0 is wrong!)
     'u2':0.589,                          # NO REF (assuming 0 is wrong!)
+    'period':3.52474955,             # orbital period (in days):                REF: Kokori et al. 2023
+    'a':8.76,                        # semi-major axis in stellar radii:        REF: Kokori et al. 2023
 }
 
 # FIXED VALUES (those are the parameters we assume to be known)
 fixed_params = {
     # orbital parameters:
-    'period':3.52474955,             # orbital period (in days):                REF: Kokori et al. 2023
     't0':1.518,                      # checked on plot
     'ecc':0.01,                      # Ref: Rosenthal et al. 2021
-    'a':8.76,                        # semi-major axis in stellar radii:        REF: Kokori et al. 2023
     'inc':86.71,                     # orbital inclination in degrees           REF: Kokori et al. 2023
     'omega':0,                       # longitude of periastron (in degrees)     REF: Rosenthal et al. 2021
     'limb_dark_model':"quadratic",   # limb-darkening model                     REF: https://arxiv.org/pdf/0802.3764
@@ -202,12 +225,13 @@ plt.show()
 # [uniform, lower bound, upper bound]
 # [gauss, mean, sigma]
 param_priors = {
-    'ps':        ['uni', 0., 0.5],     # stellar radii
-    'u1':        ['uni', -3., 3],      # limb darkening
-    'u2':        ['uni', -3., 3.],     # limb darkening
-    # 'period':    ['uni', 3.3, 3.7],# orbital period
+    'ps':        ['uni', 0., 0.5],       # stellar radii
+    'u1':        ['uni', -3., 3],        # limb darkening
+    'u2':        ['uni', -3., 3.],       # limb darkening
+    'a':         ['uni', 2.,10.],        # semi-major axis in stellar radii
+    'period':    ['uni', 2.0, 5.0 ],     # orbital period
     # 'ecc':       ['uni', 0., 0.1],     # eccentricity
-    # 't0':        ['uni', 1.4, 1.63],   # time of inferior conjunction
+    # 't0':        ['uni', 0.5, 2.0],    # time of inferior conjunction
 }
 
 # MCMC parameters
@@ -215,7 +239,7 @@ mcmc_params = {
     'ndim'        :len(param_priors),
     'nwalkers'    :4*len(param_priors),
     'nsteps'      :50000,
-    'burn_in_frac':0.4,
+    'burn_in_frac':0.6,
 }
 
 # iterate over all errors, creating output plots, may take a while!
