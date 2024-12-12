@@ -8,3 +8,5 @@ outputs/samples/*
 __pycache__/
 
 myenv/
+
+outputs/
