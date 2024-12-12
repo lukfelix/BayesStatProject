@@ -30,6 +30,54 @@ time_data, flux_data, flux_err_data = data[1:, 0], data[1:, 1], data[1:, 2] # Sk
 # Clean the data (remove NaN values)
 time_data_noNaN, flux_data_noNaN, flux_err_noNaN = clean_data(time_data, flux_data, flux_err_data)
 
+# Plot the cleaned data with errors
+plt.figure(figsize=(15, 10))
+plt.errorbar(time_data_noNaN, flux_data_noNaN, yerr=flux_err_noNaN, fmt='.', color='orange', alpha=0.3, label="Flux Errors", markersize=1)
+plt.plot(time_data_noNaN, flux_data_noNaN,'.', label="Observed Flux", color="black", markersize=2)
+plt.ylabel("Flux [e-/s]")
+plt.xlabel("Time [days]")
+plt.title("TESS DATA: HD-209458b")
+plt.legend()
+plt.show()
+
+fig, ax = plot_single_light_curve_with_zoom(time_data_noNaN, flux_data_noNaN, flux_err_noNaN, plt_size=(15, 10),zoom_range=(2826.45, 2827.1))
+
+
+#%%
+
+# if already preprocessed, plot the data before and after preprocessing
+# Plot the cleaned data with errors
+plt.figure(figsize=(15, 5))
+# plt.errorbar(time_data_noNaN, flux_data_noNaN, yerr=flux_err_noNaN, fmt='.', color='orange', alpha=0.3, label="Flux Errors", markersize=1)
+plt.plot(time_data_noNaN, flux_data_noNaN,'.', label="Observed Flux", color="black", markersize=0.8)
+plt.ylabel("Flux [e-/s]", fontsize=17)
+plt.xlabel("Time [days]", fontsize=17)
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
+plt.title("TESS DATA - HD-209458b - Before Preprocessing", fontsize=20)
+# plt.legend(loc='best', fontsize=20)
+plt.show()
+
+if os.path.exists("outputs/data_TESS/FINAL_time_data.npy"):
+
+    x_final = np.load("outputs/data_TESS/FINAL_time_data.npy")
+    y_final = np.load("outputs/data_TESS/FINAL_flux_data.npy")
+
+    plt.figure(figsize=(15, 5))
+    # plt.errorbar(time_data_noNaN, flux_data_noNaN, yerr=flux_err_noNaN, fmt='.', color='orange', alpha=0.3, label="Flux Errors", markersize=1)
+    plt.plot(x_final, y_final,'.', label="Observed Flux", color="black", markersize=0.8)
+    plt.ylabel("Relative Flux", fontsize=17)
+    plt.xlabel("Time [days]", fontsize=17)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.title("TESS DATA - HD-209458b - After Preprocessing", fontsize=20)
+    # plt.legend(loc='best', fontsize=20)
+    plt.show()
+
+
+#%%
+
+
 # Normalize the time data & flux data & err data for easier post-processing
 time_data_norm_noNaN = time_data_noNaN - time_data_noNaN[0]
 
@@ -49,13 +97,14 @@ flux_err_norm_noNaN = flux_err_noNaN / (max_val - min_val)
 
 
 # Plot the cleaned data, zoom_range=(2826.65, 2826.92)
-fig, ax = plot_single_light_curve_with_zoom(time_data_norm_noNaN, flux_data_norm_noNaN, flux_err_norm_noNaN, plt_size=(20, 10),zoom_range=(5.7, 7.3))
+fig, ax = plot_single_light_curve_with_zoom(time_data_norm_noNaN, flux_data_norm_noNaN, flux_err_norm_noNaN, plt_size=(15, 8),zoom_range=(5.7, 7.3))
 
 # Save the plot
 output_plot_dir = pathlib.Path("outputs/plots_TESS")
 tess_data_plot_name = output_plot_dir / "tess_data_plot.png"
 if not os.path.exists(tess_data_plot_name):
     fig.savefig(tess_data_plot_name, dpi=300)
+
 
 
 #%%
@@ -363,9 +412,21 @@ synthetic_flux_err = np.full(extend, mean_flux_err)
 extended_flux_err = np.concatenate([synthetic_flux_err, flux_err_stellar_flux, synthetic_flux_err])
 
 
+# Plot extended solar flux data
+plt.figure(figsize=(15, 4))
+plt.plot(extended_time_data_obs, extended_flux_data, ".", label="Extended Data", color="green", markersize=2)
+plt.plot(time_stellar_flux, flux_stellar_flux, ".", label="Observed Data", color="black", markersize=2)
+plt.ylabel("Relative Flux", fontsize=14)
+plt.xlabel("Time [days]", fontsize=14)
+plt.title("Extended Stellar Flux Data", fontsize=16)
+plt.legend(fontsize=16, loc="lower left", markerscale=3)
+plt.show()
+
+#%%
+
 # Define the kernel: a combination of periodic and squared exponential kernels
 kernel = (
-    1.0 * kernels.ExpSquared(scale=4.5)  # Smooth variation         # 1.0, 5.0
+    1.0 * kernels.ExpSquared(scale=4.0)  # Smooth variation         # 1.0, 5.0
     + 0.5 * kernels.ExpSineSquared(scale=10.0, gamma=0.5)  # Periodic variation
     + 0.3 * kernels.RationalQuadratic(scale=2.0, alpha=0.6)  # Adaptive smoothness, best so far: 0.3, 2.0, 0.6
 )
@@ -393,15 +454,16 @@ smoothed_mu = rolling_average(mu, window_size)
 
 # %%
 # Plot the results
-plt.figure(figsize=(15, 6))
-# plt.plot(extended_time_data_obs, extended_flux_data, ".", label="Extended Data", color="green", markersize=2)
-plt.plot(time_stellar_flux, flux_stellar_flux,'.', label="Observed Data", color="blue", markersize=2)
+plt.figure(figsize=(15, 4))
+plt.plot(extended_time_data_obs, extended_flux_data, ".", label="Extended Data", color="green", markersize=2)
+plt.plot(time_stellar_flux, flux_stellar_flux,'.', label="Observed Data", color="black", markersize=2)
 # plt.fill_between(extended_time_data, mu-std, mu+std, color = "red", alpha=0.5, label="GP Uncertainty")
 plt.plot(extended_time_data, mu,'.', alpha=0.5, label="GP fit", color="red", markersize=3)
 plt.plot(extended_time_data[500:-500], smoothed_mu[500:-500], alpha=1.0, label="GP fit averaged", color="yellow")
-plt.ylabel("Flux")
-plt.title("Gaussian Process Regression to Fill Gaps in Stellar Flux Data, DIRECT FIT")
-plt.legend()
+plt.ylabel("Relative Flux", fontsize=14)
+plt.xlabel("Time [days]", fontsize=14)
+plt.title("Extended Stellar Flux Data with Gaussian Process Fit", fontsize=16)
+plt.legend(fontsize=16, loc="lower right", markerscale=3, ncol=2)
 plt.show()
 
 #%%
@@ -424,12 +486,14 @@ print(len(flux_stellar_flux))
 print(np.average(flux_stellar_flux/flux_with_gaps))
 
 # Plot the results
-plt.figure(figsize=(15, 6))
+plt.figure(figsize=(15, 4))
 # plt.plot(time_stellar_flux[7400:-7500], (flux_with_gaps/flux_stellar_flux)[7400:-7500],'.', label="Observed Flux / GP Fitted FLux", color="blue", markersize=2)
-plt.plot(time_stellar_flux, (flux_with_gaps/flux_stellar_flux),'.', label="Observed Flux / GP Fitted FLux", color="blue", markersize=2)
-plt.ylabel("Flux")
-plt.title("Observed Flux divided by Gaussian Process Flux")
-plt.legend()
+plt.plot(time_stellar_flux, (flux_stellar_flux/flux_with_gaps),'.', label="Observed Flux / GP Fit Avg ", color="black", markersize=2)
+plt.axhline(y=np.average(flux_stellar_flux/flux_with_gaps), color='r', linestyle='--', label="Mean", linewidth=2)
+plt.ylabel("Relative Flux", fontsize=14)
+plt.xlabel("Time [days]", fontsize=14)
+plt.title("Observed Flux nromalized by Gaussian Process Fit", fontsize=16)
+plt.legend(fontsize=16, loc="best", markerscale=3, ncol=2)
 plt.show()
 
 #%%
@@ -520,10 +584,24 @@ FINAL_flux_err_data = FINAL_flux_err_data / mean_stellar_flux
 
 #%%
 
-# FINAL DATA is wheen we discard this small patch that is not so pretty.
-FINAL_time_data = final_time_data[indices_good_flux]
-FINAL_flux_data = FINAL_flux_data[indices_good_flux]
-FINAL_flux_err_data = FINAL_flux_err_data[indices_good_flux]
+
+# Create a mask for all indices
+mask = np.ones_like(final_time_data, dtype=bool)
+mask[indices_good_flux] = False  # Mark good stellar indices as False
+
+# Set all non-good indices to NaN
+FINAL_flux_data[mask] = np.nan
+FINAL_flux_err_data[mask] = np.nan
+
+
+# # FINAL DATA is wheen we discard this small patch that is not so pretty.
+# FINAL_time_data = final_time_data[indices_good_flux]
+# FINAL_flux_data = FINAL_flux_data[indices_good_flux]
+# FINAL_flux_err_data = FINAL_flux_err_data[indices_good_flux]
+
+FINAL_time_data = final_time_data
+FINAL_flux_data = FINAL_flux_data
+FINAL_flux_err_data = FINAL_flux_err_data
 
 
 # Plot the results
@@ -537,6 +615,11 @@ plt.show()
 
 #%%
 
+#check if there are NaN values
+print(len(np.where(np.isnan(FINAL_flux_data))[0]))
+print(len(final_time_data)-len(FINAL_flux_data))
+
+#%%
 ########################################################
 
 ########################################################

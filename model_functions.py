@@ -1,5 +1,7 @@
 import numpy as np
+from jax import jit
 
+@jit
 def kipping_to_quad(q1, q2):
     """
     Transforms the two parameters of the Kipping parameterization to the quadratic parameterization.
@@ -11,6 +13,7 @@ def kipping_to_quad(q1, q2):
     u2 = np.sqrt(q1)*(1 - 2*q2)
     return u1, u2
 
+@jit
 def quad_to_kipping(u1, u2):
     """
     Probably not used (maybe for plotting at some point?)
@@ -44,6 +47,11 @@ def eval_transit(theta, initial_params, model, transform):
     else:
         params.u = [theta[1], theta[2]]
     # TODO: add further parameters to be fitted
+    params.a = theta[3]
+    params.per = theta[4]
+    # params.per = theta[4]
+    # params.per = theta[3]
+
 
     # evaluate model with current guesses theta
     flux = model.light_curve(params)

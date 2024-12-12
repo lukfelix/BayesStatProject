@@ -46,7 +46,7 @@ def run_full_routine_NO_err_dic(truths, model_params, model, priors, mcmc,
     # else:
     #     print("Chains may not have converged. Check diagnostics.")
 
-    return
+    return posterior_samples
     
 #%%
 # Load the preprocessed data
@@ -133,10 +133,10 @@ plt.show()
 
 truths = {
     'ps':0.1268,                     # Ref: ExoFOP-TESS TOI
-    'u1':0.085,                          # NO REF (assuming 0 is wrong!)
-    'u2':0.589,                          # NO REF (assuming 0 is wrong!)
+    'u1':0.27741,                          # NO REF (assuming 0 is wrong!)
+    'u2':0.23677,                          # NO REF (assuming 0 is wrong!)
+    'a':8.81,                        # semi-major axis in stellar radii:        REF: Stassun et al. 2017
     'period':3.52474955,             # orbital period (in days):                REF: Kokori et al. 2023
-    'a':8.76,                        # semi-major axis in stellar radii:        REF: Kokori et al. 2023
 }
 
 # FIXED VALUES (those are the parameters we assume to be known)
@@ -194,8 +194,8 @@ err_data = flux_err_data    # error data array
 
 # Plot the results
 plt.figure(figsize=(15, 6))
-plt.plot(time_data, flux_data, label="TESS HD-209458b flux data", color="blue")
-plt.plot(time_sim, flux_sim, label="Simulated Light Curve", color="black", linestyle="--")
+plt.plot(time_data[1000:1200], flux_data[1000:1200],'.', label="TESS HD-209458b flux data", color="blue")
+plt.plot(time_sim[1000:1200], flux_sim[1000:1200], label="Simulated Light Curve", color="black", linestyle="--")
 plt.ylabel("Flux")
 plt.title("First Transit of TESS HD-209458b")
 plt.legend()
@@ -225,11 +225,11 @@ plt.show()
 # [uniform, lower bound, upper bound]
 # [gauss, mean, sigma]
 param_priors = {
-    'ps':        ['uni', 0., 0.5],       # stellar radii
+    'ps':        ['uni', 0.1, 0.15],       # stellar radii
     'u1':        ['uni', -3., 3],        # limb darkening
     'u2':        ['uni', -3., 3.],       # limb darkening
-    'a':         ['uni', 2.,10.],        # semi-major axis in stellar radii
-    'period':    ['uni', 2.0, 5.0 ],     # orbital period
+    'a':         ['uni', 8.0, 10],        # semi-major axis in stellar radii
+    'period':    ['uni', 3.45, 3.6 ],     # orbital period
     # 'ecc':       ['uni', 0., 0.1],     # eccentricity
     # 't0':        ['uni', 0.5, 2.0],    # time of inferior conjunction
 }
@@ -238,20 +238,28 @@ param_priors = {
 mcmc_params = {
     'ndim'        :len(param_priors),
     'nwalkers'    :4*len(param_priors),
-    'nsteps'      :50000,
-    'burn_in_frac':0.6,
+    # 'nwalkers'    :10,
+    'nsteps'      :150000,
+    'burn_in_frac':0.5,
 }
-
+#%%
 # iterate over all errors, creating output plots, may take a while!
 # if you want to save the file, additionally pass the argument save=get_name_str(truths)
-run_full_routine_NO_err_dic(truths, params, model, param_priors, mcmc_params, 
+flattened_samples = run_full_routine_NO_err_dic(truths, params, model, param_priors, mcmc_params, 
                  time_data, flux_data, err_data, 
                  transform=False)#, save=get_name_str(truths))
+#%%
+sample_name = "outputs/mcmc_TESS_samples/samples_quadratic_%s_%s_%s_%s.npy" % (mcmc_params['nsteps'], mcmc_params['burn_in_frac'], mcmc_params['nwalkers'], mcmc_params['ndim'])
+np.save(sample_name, flattened_samples)
 
+#%%
+sample_name = "outputs/mcmc_TESS_samples/samples_quadratic_%s_%s_%s_%s.npy" % (mcmc_params['nsteps'], mcmc_params['burn_in_frac'], mcmc_params['nwalkers'], mcmc_params['ndim'])
+flat_samples = np.load(sample_name)
+# Plot the corner plot
+create_corner_plot_NO_err_dic(flat_samples, truths, transform=False)
 
 
 #%%
-
 
 # #%%
 # ################################################################################
@@ -280,3 +288,70 @@ run_full_routine_NO_err_dic(truths, params, model, param_priors, mcmc_params,
 #                  transform=True)#, save=get_name_str(truths))
 
 #%%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###### PLOT THE RESULTS NICELY ########
+
+best_fit = {
+    'ps':0.12763,                     # Ref: ExoFOP-TESS TOI
+    'u1':0.3771,                          # NO REF (assuming 0 is wrong!)
+    'u2':0.05549,                          # NO REF (assuming 0 is wrong!)
+    'a':8.8493,                        # semi-major axis in stellar radii:        REF: Stassun et al. 2017
+    'period':3.52477,             # orbital period (in days):                REF: Kokori et al. 2023
+}
+
+fixed_params = {
+    # orbital parameters:
+    't0':1.518,                      # checked on plot
+    'ecc':0.01,                      # Ref: Rosenthal et al. 2021
+    'inc':86.71,                     # orbital inclination in degrees           REF: Kokori et al. 2023
+    'omega':0,                       # longitude of periastron (in degrees)     REF: Rosenthal et al. 2021
+    'limb_dark_model':"quadratic",   # limb-darkening model                     REF: https://arxiv.org/pdf/0802.3764
+    # observation parameters from dataset:
+    'n_points':len(time_data),       # number of points in the light curve
+    't_min':min(time_data),                   # minimum time in days
+    't_max':max(time_data),                    # maximum time in days
+}
+
+# Initialize the parameters accordingly, to match the "syntax" of the batman package
+params_best_fit, t_array = initialize_parameters(best_fit, fixed_params)
+
+
+#%%
+################ Step 2 - Create Model & Simulate Light Curve ##################
+
+# Initialize the batman model using the parameters from above
+model, time_sim, flux_best_fit = initialize_model(params_best_fit, t_array)    #initializes model for the simulation
+
+
+# Plot the results
+plt.figure(figsize=(15, 5))
+plt.plot(time_sim[1000:1190], flux_best_fit[1000:1190], label="Best Fit (MCMC)", color="mediumseagreen", linestyle="-", linewidth=2.5)
+plt.plot(time_data[1000:1190], flux_data[1000:1190],'.', label="TESS flux data", color="black", markersize=8)
+plt.ylabel("Relative Flux", fontsize=17)
+plt.xlabel("Time [days]", fontsize=17)
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
+# plt.title("First Transit of TESS Dataset", fontsize=18)
+plt.legend(loc='best', fontsize=17)
+plt.show()
+# %%
+

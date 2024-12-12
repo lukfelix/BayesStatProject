@@ -115,6 +115,7 @@ def run_mcmc(time_data, flux_data, error_data, model,
         print(f"Saved samples to {sample_file_name}")
 
     return flattened_samples, samples
+from matplotlib.ticker import FuncFormatter
 
 def create_corner_plot_NO_err_dic(posterior_samples, truths, transform=False):
     """
@@ -122,21 +123,45 @@ def create_corner_plot_NO_err_dic(posterior_samples, truths, transform=False):
     """
     fig = corner.corner(
         posterior_samples, 
-        title_fmt='.5f',
+        title_fmt='.4f',
         bins=50,
         show_titles=True,
-        labels=[r"$P_S$", r"$u_1$", r"$u_2$", r"$a$", r"period"], # leave this in since we want fancier plots, but at some point go with keys for flexibility
+        labels=[r"$R_P / R_*$", r"$u_1$", r"$u_2$", r"$a / R_*$", r"Period"], # leave this in since we want fancier plots, but at some point go with keys for flexibility
         # labels = truths.keys(),
-        truths=[truths['ps'], truths['u1'], truths['u2'],truths['a'], truths['period']],
+        # truths=[truths['ps'], truths['u1'], truths['u2'], truths['a'], truths['period']],
         plot_density=True,
         plot_datapoints=True,
         fill_contours=False,
         smooth=True,
         levels=(0.6827, 0.90, 0.9545),              # shows the 1, 1.5 and 2 sigma contours in the 2D plots
         quantiles=[0.16, 0.5, 0.84],                # shows the 1 sigma interval in the 1D plots
-        title_kwargs={"fontsize": 10},
+        title_kwargs={"fontsize": 14},
         truth_color='cornflowerblue',
     )
+    # Adjusting the size of x tick labels and ticks
+    for ax in fig.axes:
+        ax.tick_params(axis='x', labelsize=12, length=4, width=2)  # Adjust label size, tick length, and width
+        ax.tick_params(axis='y', labelsize=12, length=4, width=2)  # Similarly for y-axis ticks if needed
+        # ax.xaxis.get_offset_text().set_fontsize(14)
+    for i, ax in enumerate(fig.axes):
+        if ax.xaxis.get_label().get_text():  # Check if x-axis has a label
+            ax.set_xlabel(ax.xaxis.get_label().get_text(), fontsize=15)  # Adjust x-axis label
+        if ax.yaxis.get_label().get_text():  # Check if y-axis has a label
+            ax.set_ylabel(ax.yaxis.get_label().get_text(), fontsize=15)
+
+    # Formatter for x ticks to set decimal places
+    def format_ticks(x, pos):
+        return f"{x:.4f}"  # Adjust to show 2 decimal places
+
+    formatter = FuncFormatter(format_ticks)
+
+    # Apply the formatter to all x-axes
+    for i, ax in enumerate(fig.axes):
+        if i == len(fig.axes) - 5:
+            ax.xaxis.set_major_formatter(formatter)
+
+    fig.subplots_adjust(left=-0.03, bottom=-0.03)  # Adjust the spacing between the edges of the figure and the subplots
+
 
     # if transform:
     #     corner_plot_name = "outputs/plots/corner_plot_kipping_%.0fppm" % (errval)

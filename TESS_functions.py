@@ -70,17 +70,17 @@ def plot_single_light_curve_with_zoom(time_data, flux_data, flux_err_data, plt_s
     # Plot the flux with error bars
     ax.errorbar(
         time_data, flux_data, yerr=flux_err_data, fmt='o', capsize=1, capthick=0.5, elinewidth=0.5, 
-        color='orange', label='Flux with Errors', markersize=1, alpha=0.6
+        color='orange', label='Flux Errors', markersize=1, alpha=0.3
     )
 
     # Overlay the main line
-    ax.plot(time_data, flux_data, linestyle='-', linewidth=1.5, color='black', label='Flux')
+    ax.plot(time_data, flux_data,'.', color='black', label='Observed Flux', markersize=3)
 
     # Customize appearance
     ax.set_xlabel("Time [days]", fontsize=12)
-    ax.set_ylabel("Flux", fontsize=12)
-    ax.set_title("Flux vs Time with Error Bars", fontsize=14)
-    ax.legend(fontsize=10)
+    ax.set_ylabel("Flux [e-/s]", fontsize=12)
+    ax.set_title("TESS Data: HD-209458b  ", fontsize=18)
+    ax.legend(fontsize=14, loc='lower left')
 
     # Tweak axes for better presentation
     ax.tick_params(axis='both', which='major', labelsize=10)
@@ -105,7 +105,7 @@ def plot_single_light_curve_with_zoom(time_data, flux_data, flux_err_data, plt_s
     # Remove ticks for inset for simplicity
     axins.tick_params(axis='both', which='major', labelsize=8)
     axins.grid(visible=True, linestyle='--', alpha=0.5)  # Add a subtle grid for reference
-    axins.set_title("Zoomed-In View of First Transit", fontsize=10)
+    axins.set_title("View of First Transit", fontsize=14)
 
     # Highlight zoom range on main plot
     ax.indicate_inset_zoom(axins, edgecolor="red", lw=3)

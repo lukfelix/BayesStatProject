@@ -31,6 +31,7 @@ def initialize_model(params, time, ncpu=1):
     Initialize a batman model using the given parameters and time array.
     ncpu=1  : number of cores available for batman (set to 1 if you either want to be slow or don't have openMP)
     """
+    # ncpu = 4
     model = batman.TransitModel(params, time, nthreads = int(ncpu))    #initializes model for the simulation
     # Generate data
     flux_data = simulate_light_curve(model, params)    # Simulate the light curve using the batman model and the parameters to generate the data
