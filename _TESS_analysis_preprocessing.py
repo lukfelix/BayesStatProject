@@ -27,8 +27,11 @@ from TESS_functions import *                # functions used for TESS data prepr
 data = np.genfromtxt('outputs/data_TESS/data.csv', delimiter=',')
 time_data, flux_data, flux_err_data = data[1:, 0], data[1:, 1], data[1:, 2] # Skip the header & extract the relevant columns
 
+
 # Clean the data (remove NaN values)
 time_data_noNaN, flux_data_noNaN, flux_err_noNaN = clean_data(time_data, flux_data, flux_err_data)
+
+print(np.mean(flux_data_noNaN))
 
 # Plot the cleaned data with errors
 plt.figure(figsize=(15, 6))
@@ -65,13 +68,13 @@ fig, ax = plot_single_light_curve_with_zoom(time_data_noNaN, flux_data_noNaN, fl
 # Plot the cleaned data with errors
 plt.figure(figsize=(14, 4.5))
 # plt.errorbar(time_data_noNaN, flux_data_noNaN, yerr=flux_err_noNaN, fmt='.', color='orange', alpha=0.3, label="Flux Errors", markersize=1)
-plt.plot(time_data_noNaN[100:-200], flux_data_noNaN[100:-200],'.', label="Observed Flux", color="black", markersize=0.8)
+plt.plot(time_data_noNaN[100:-200], flux_data_noNaN[100:-200],'.', label="Raw TESS Data", color="black", markersize=0.8)
 plt.ylabel("Flux [e-/s]", fontsize=17)
 plt.xlabel("Time [days]", fontsize=17)
 plt.xticks(fontsize=15)
 plt.yticks(fontsize=15)
 # plt.title("TESS DATA - HD-209458b - Before Preprocessing", fontsize=20)
-# plt.legend(loc='best', fontsize=20)
+plt.legend(loc='best', fontsize=17, markerscale=6.0)
 plt.show()
 
 if os.path.exists("outputs/data_TESS/FINAL_time_data.npy"):
@@ -81,13 +84,14 @@ if os.path.exists("outputs/data_TESS/FINAL_time_data.npy"):
 
     plt.figure(figsize=(14, 4.5))
     # plt.errorbar(time_data_noNaN, flux_data_noNaN, yerr=flux_err_noNaN, fmt='.', color='orange', alpha=0.3, label="Flux Errors", markersize=1)
-    plt.plot(x_final[100:-200], y_final[100:-200],'.', label="Observed Flux", color="black", markersize=0.8)
+    plt.plot(x_final[100:-200], y_final[100:-200],'.', label="Preprocessed TESS Data", color="black", markersize=0.8)
+    plt.axhline(y = 1.00000, color = 'r', linestyle = '-', label="Average Stellar Flux") 
     plt.ylabel("Relative Flux", fontsize=17)
     plt.xlabel("Time [days]", fontsize=17)
     plt.xticks(fontsize=15)
     plt.yticks(fontsize=15)
     # plt.title("TESS DATA - HD-209458b - After Preprocessing", fontsize=20)
-    # plt.legend(loc='best', fontsize=20)
+    plt.legend(loc='right', fontsize=17, markerscale=6.0)
     plt.show()
 
 
@@ -469,12 +473,15 @@ def rolling_average(data, window_size):
 window_size = 500  # Adjust this to control the smoothness
 smoothed_mu = rolling_average(mu, window_size)
 
+#%%
+
+print(np.mean(np.sqrt(std)))
 
 # %%
 # Plot the results
 plt.figure(figsize=(15, 4))
-plt.plot(extended_time_data_obs, extended_flux_data, ".", label="Extended Data", color="black", markersize=2)
-# plt.plot(time_stellar_flux, flux_stellar_flux,'.', label="Observed Data", color="black", markersize=2)
+plt.plot(extended_time_data_obs, extended_flux_data, ".", label="TESS Data (extended)", color="green", markersize=2)
+plt.plot(time_stellar_flux, flux_stellar_flux,'.', label="TESS Data", color="black", markersize=2)
 # plt.fill_between(extended_time_data, mu-std, mu+std, color = "red", alpha=0.5, label="GP Uncertainty")
 plt.plot(extended_time_data, mu,'.', alpha=0.5, label="GP fit", color="red", markersize=3)
 plt.plot(extended_time_data[500:-500], smoothed_mu[500:-500], alpha=1.0, label="GP fit averaged", color="yellow")
@@ -483,7 +490,7 @@ plt.xlabel("Time [days]", fontsize=18)
 plt.xticks(fontsize=17)
 plt.yticks(fontsize=17)
 # plt.title("Extended Stellar Flux Data with Gaussian Process Fit", fontsize=16)
-plt.legend(fontsize=16, loc="lower right", markerscale=4, ncol=1)
+plt.legend(fontsize=16, loc="lower right", markerscale=4, ncol=2)
 plt.show()
 
 #%%
@@ -508,8 +515,8 @@ print(np.average(flux_stellar_flux/flux_with_gaps))
 # Plot the results
 plt.figure(figsize=(15, 4))
 # plt.plot(time_stellar_flux[7400:-7500], (flux_with_gaps/flux_stellar_flux)[7400:-7500],'.', label="Observed Flux / GP Fitted FLux", color="blue", markersize=2)
-plt.plot(time_stellar_flux, (flux_stellar_flux/flux_with_gaps),'.', label=r"$F_\text{new} = \frac{F_\text{obs}}{ F_\text{GP avg.}}$", color="black", markersize=2)
-plt.axhline(y=np.average(flux_stellar_flux/flux_with_gaps), color='yellow', linestyle='--', label="Mean", linewidth=2)
+plt.plot(time_stellar_flux, (flux_stellar_flux/flux_with_gaps),'.', label=r"$F_\text{data,norm} = F_\text{data} \,/ \,F_\text{GP, avg}$", color="black", markersize=2)
+plt.axhline(y=np.average(flux_stellar_flux/flux_with_gaps), color='red', linestyle='--', label="Mean", linewidth=2)
 plt.ylabel("Relative Flux", fontsize=18)
 plt.xlabel("Time [days]", fontsize=18)
 plt.xticks(fontsize=17)

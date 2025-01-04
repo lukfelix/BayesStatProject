@@ -46,7 +46,8 @@ def run_full_routine_NO_err_dic(truths, model_params, model, priors, mcmc,
     # else:
     #     print("Chains may not have converged. Check diagnostics.")
 
-    return posterior_samples
+    # return posterior_samples
+    return unflattened_samples
     
 #%%
 # Load the preprocessed data
@@ -245,16 +246,17 @@ mcmc_params = {
 #%%
 # iterate over all errors, creating output plots, may take a while!
 # if you want to save the file, additionally pass the argument save=get_name_str(truths)
-flattened_samples = run_full_routine_NO_err_dic(truths, params, model, param_priors, mcmc_params, 
+samples = run_full_routine_NO_err_dic(truths, params, model, param_priors, mcmc_params, 
                  time_data, flux_data, err_data, 
                  transform=False)#, save=get_name_str(truths))
 #%%
 sample_name = "outputs/mcmc_TESS_samples/samples_quadratic_%s_%s_%s_%s.npy" % (mcmc_params['nsteps'], mcmc_params['burn_in_frac'], mcmc_params['nwalkers'], mcmc_params['ndim'])
-np.save(sample_name, flattened_samples)
+np.save(sample_name, samples)
 
 #%%
 sample_name = "outputs/mcmc_TESS_samples/samples_quadratic_%s_%s_%s_%s.npy" % (mcmc_params['nsteps'], mcmc_params['burn_in_frac'], mcmc_params['nwalkers'], mcmc_params['ndim'])
-flat_samples = np.load(sample_name)
+samples = np.load(sample_name)
+flat_samples = samples.reshape(-1, len(param_priors))
 # Plot the corner plot
 create_corner_plot_NO_err_dic(flat_samples, truths, transform=False)
 
@@ -355,3 +357,17 @@ plt.legend(loc='best', fontsize=17)
 plt.show()
 # %%
 
+# Check the convergence of the MCMC chains
+print("Checking convergence of the MCMC chains...")
+model_name = "quadratic_model"
+R_hat = check_convergence(samples, model_name, truths.keys())
+
+
+# %%
+
+try:
+    tau = emcee.autocorr.integrated_time(samples, quiet=True)
+    print("Autocorrelation time for each parameter:", tau)
+except Exception as e:
+    print("Error calculating autocorrelation time:", e)
+# %%
