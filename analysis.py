@@ -147,9 +147,9 @@ mcmc_params = {
 
 # iterate over all errors, creating output plots, may take a while!
 # if you want to save the file, additionally pass the argument save=get_name_str(truths)
-# run_full_routine(truths, params, model, param_priors, mcmc_params, 
-#                  time_data, flux_data, all_errors_dict, 
-#                  transform=False)#, save=get_name_str(truths))
+run_full_routine(truths, params, model, param_priors, mcmc_params, 
+                 time_data, flux_data, all_errors_dict, 
+                 transform=False, save=get_name_str(truths))
 #%%
 ################################################################################
 ######################### Run Kipping Limb-Drkening ############################
@@ -170,11 +170,13 @@ truths = {
     # but it diverges (gives different results depending which param you let go to 0 first)
 }
 
-# iterate over all errors, creating output plots, may take a while!
-# if you want to save the file, additionally pass the argument save=get_name_str(truths)
-run_full_routine(truths, params, model, param_priors, mcmc_params, 
-                 time_data, flux_data, all_errors_dict, 
-                 transform=True)#, save=get_name_str(truths))
+# =============================================================================
+# # iterate over all errors, creating output plots, may take a while!
+# # if you want to save the file, additionally pass the argument save=get_name_str(truths)
+# run_full_routine(truths, params, model, param_priors, mcmc_params, 
+#                  time_data, flux_data, all_errors_dict, 
+#                  transform=True)#, save=get_name_str(truths))
+# =============================================================================
 
 #%%
 
