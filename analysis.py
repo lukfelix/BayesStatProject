@@ -25,7 +25,7 @@ from check_convergence import *             # functions used for checking conver
 # TRUE VALUES (those are the parameters we want to estimate with MCMC)
 truths = {
     'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
-    'u':[0, 0]                       # limb-darkening coefficients: u1, u2 (no limb-darkening = [0, 0])
+    'u':[0.05, 0.05]                       # limb-darkening coefficients: u1, u2 (no limb-darkening = [0, 0])
 }
 
 # FIXED VALUES (those are the parameters we assume to be known)
@@ -121,7 +121,7 @@ param_priors = {
 mcmc_params = {
     'ndim'        :len(param_priors),
     'nwalkers'    :4*len(param_priors),
-    'nsteps'      :10000,
+    'nsteps'      :100000,
     'burn_in_frac':0.6,
 }
 
@@ -154,7 +154,7 @@ def run_parametrisation(parametrisation, param_priors, truths, param_names, use_
                                     transform=transform, use_jeffrey=use_jeffrey)
 
         # Plot the corner plot
-        create_corner_plot(posterior_samples, truths, all_errors_dict[key][0]*1e6, transform=True)
+        create_corner_plot(posterior_samples, truths, all_errors_dict[key][0]*1e6, transform=transform, use_jeffrey=use_jeffrey)
         
         if parametrisation == "quadratic": 
             if use_jeffrey:
@@ -191,9 +191,10 @@ param_priors = {
 }
 truths = {
     'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
-    'u':[0, 0]                       # limb-darkening coefficients: u1, u2
+    'u':[0.05, 0.05]                       # limb-darkening coefficients: u1, u2
 }
 use_jeffrey = False
+
 run_parametrisation("quadratic", param_priors, truths, param_names, use_jeffrey)
 
 #%%
@@ -205,14 +206,21 @@ param_names = ['ps', 'u1', 'u2']
 param_priors = {
     # TODO: adapt these depending on simdata
     'ps':        ['uni', 0., 0.5],      # stellar radii
-    'u1':        ['uni', -3., 3.],     # limb darkening
-    'u2':        ['uni', -3., 3.],     # limb darkening
+    'u1':        ['jeffrey', -3., 3.],     # limb darkening
+    'u2':        ['jeffrey', -3., 3.],     # limb darkening
 }
 truths = {
     'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
-    'u':[0, 0]                       # limb-darkening coefficients: u1, u2
+    'u':[0.05, 0.05]                       # limb-darkening coefficients: u1, u2
 }
 use_jeffrey = True
+from visualization import visualize_jeffreys_prior
+for key in all_errors_dict:
+    # Call the visualization for quadratic parameterization
+    visualize_jeffreys_prior(params, model, time_data, flux_data, all_errors_dict[key], param_type='quadratic')
+
+# Call the visualization for Kipping parameterization
+#visualize_jeffreys_prior(params, model, time_data, flux_data, error_data, param_type='kipping')
 run_parametrisation("quadratic", param_priors, truths, param_names, use_jeffrey)
 
 #%%
@@ -231,7 +239,7 @@ param_priors = {
 }
 truths = {
     'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
-    'u':[0, 0.5]                    # limb-darkening coefficients: q1, q2 (no limb-darkening = [0, ?])
+    'u':[0, None]                    # limb-darkening coefficients: q1, q2 (no limb-darkening = [0, ?])
     # TODO: q2 is not actually well defined... need to calculate the limes of 0.5 * u1 / (u1 + u2) for u1 & u2 -> 0, i guess it's 0.25?
     # 
 }
@@ -259,16 +267,21 @@ param_names = ['ps', 'q1', 'q2']
 param_priors = {
     # TODO: adapt these depending on simdata
     'ps':        ['uni', 0., 0.5],      # stellar radii
-    'q1':        ['uni', 0., 1.],     # limb darkening
-    'q2':        ['uni', 0., 1.],     # limb darkening
+    'q1':        ['jeffrey', 0., 1.],     # limb darkening
+    'q2':        ['jeffrey', 0., 1.],     # limb darkening
 }
 truths = {
     'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
-    'u':[0, 0.5]                    # limb-darkening coefficients: q1, q2 (no limb-darkening = [0, ?])
+    'u':[0, None]                    # limb-darkening coefficients: q1, q2 (no limb-darkening = [0, ?])
     # TODO: q2 is not actually well defined... need to calculate the limes of 0.5 * u1 / (u1 + u2) for u1 & u2 -> 0, i guess it's 0.25?
     # 
 }
 
 use_jeffrey = True
+from visualization import visualize_jeffreys_prior
+for key in all_errors_dict:
+    # Call the visualization for quadratic parameterization
+    visualize_jeffreys_prior(params, model, time_data, flux_data, all_errors_dict[key], param_type='kipping')
+
 run_parametrisation("kipping", param_priors, truths, param_names, use_jeffrey)
 # %%

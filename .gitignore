@@ -6,3 +6,6 @@ outputs/plots/*.jpg
 __pycache__/
 
 myenv/
+
+venv/
+.venv/

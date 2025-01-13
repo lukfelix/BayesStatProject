@@ -46,11 +46,11 @@ def log_prior(theta, priors, params, model, time_data, flux_data, error_data, us
 
 
     # If we want to use Jeffrey priors
-    if use_jeffrey:
-        if transform:
-            return log_jeffreys_prior_kipping(theta, params, model, time_data, flux_data, error_data)
-        else: 
-            return log_jeffreys_prior(theta, params, model, time_data, flux_data, error_data)
+    #if use_jeffrey:
+    #    if transform:
+    #        return log_jeffreys_prior_kipping(theta, params, model, time_data, flux_data, error_data)
+    #    else: 
+    #        return log_jeffreys_prior(theta, params, model, time_data, flux_data, error_data)
     
     lp = 0.0
     for val, prior in zip(theta, priors):
@@ -59,30 +59,50 @@ def log_prior(theta, priors, params, model, time_data, flux_data, error_data, us
             ret = log_uni(val, priors[prior][1], priors[prior][2])
         elif priors[prior][0]=='gauss':
             ret = log_gauss(val, priors[prior][1], priors[prior][2])
+        elif priors[prior][0] == 'jeffrey':
+            if transform:
+                ret = log_jeffreys_prior_kipping(val, priors[prior][1], priors[prior][2], theta, params, model, time_data, flux_data, error_data)
+                #if not np.isfinite(ret):# or ret < 1e-20:
+                #    return -np.inf
+                #else:
+                    #lp += ret
+                #    return lp+ret
+            else:
+                ret = log_jeffreys_prior(val, priors[prior][1], priors[prior][2], theta, params, model, time_data, flux_data, error_data)
+                #if ret == -np.inf:# or ret < 1e-20:
+                    # print('inf')
+                #    return -np.inf
+                #else:
+                    #lp += ret
+                #    return lp+ret
         else:
             print('Error: prior-distribution "{}" not accepted by current code.'.format(priors[prior][0]))
             return None
-        if ret == -np.inf:# or ret < 1e-20:
+        if not np.isfinite(ret):# or ret < 1e-20:
             # print('inf')
             return -np.inf
         else:
             lp += ret
     return lp
 
-def log_jeffreys_prior_kipping(theta, params, model, time_data, flux_data, error_data):
+def log_jeffreys_prior_kipping(x, a, b, theta, params, model, time_data, flux_data, error_data):
     """
     Compute the Jeffreys prior for Kipping parameterization.
     """
-    params.u = kipping_to_quad(theta[1], theta[2])  # Convert Kipping parameters back to quadratic
-    fisher_matrix = compute_fisher_information(params, model, time_data, flux_data, error_data)
-    
-    determinant = np.linalg.det(fisher_matrix)
-    if determinant <= 1e-10:  # Small threshold to avoid log of zero or negative
+    if a < x < b:
+        params.u = kipping_to_quad(theta[1], theta[2])  # Convert Kipping parameters back to quadratic
+        fisher_matrix = compute_fisher_information(params, model, time_data, flux_data, error_data)
+        
+        determinant = np.linalg.det(fisher_matrix)
+        if determinant <= 1e-10:  # Small threshold to avoid log of zero or negative
+            return -np.inf
+        
+        return 0.5 * np.log(determinant)
+    else:
         return -np.inf
-    
-    return 0.5 * np.log(determinant)
 
-def log_jeffreys_prior(theta, params, model, time_data, flux_data, error_data):
+
+def log_jeffreys_prior(x, a, b, theta, params, model, time_data, flux_data, error_data):
     """
     Compute the Jeffreys prior for the limb-darkening parameters.
 
@@ -98,20 +118,25 @@ def log_jeffreys_prior(theta, params, model, time_data, flux_data, error_data):
         Log of Jeffreys prior.
     """
     #print("Theta =", theta)
-    params.u = theta  # Set parameters to current guess
-    fisher_matrix = compute_fisher_information(params, model, time_data, flux_data, error_data)
-    
-    # Regularize Fisher matrix for stability
-    #fisher_matrix += np.eye(fisher_matrix.shape[0]) * 1e-8
 
-    # Compute determinant of the Fisher information matrix
-    determinant = np.linalg.det(fisher_matrix)
+    if a < x < b:
+        params.u = theta  # Set parameters to current guess
+        fisher_matrix = compute_fisher_information(params, model, time_data, flux_data, error_data)
+        
+        # Regularize Fisher matrix for stability
+        #fisher_matrix += np.eye(fisher_matrix.shape[0]) * 1e-8
 
-    if determinant <= 1e-10:
-        #print(f"Small determinant: {determinant}, Theta = {theta}")
-        return -np.inf  # Log prior undefined for non-positive determinant
+        # Compute determinant of the Fisher information matrix
+        determinant = np.linalg.det(fisher_matrix)
 
-    return 0.5 * np.log(determinant) # p(theta) ~ sqrt(determinante(fisher_matrix))
+        if determinant <= 1e-10:
+            #print(f"Small determinant: {determinant}, Theta = {theta}")
+            return -np.inf  # Log prior undefined for non-positive determinant
+
+        return 0.5 * np.log(determinant) # p(theta) ~ sqrt(determinante(fisher_matrix))
+    else:
+        return -np.inf
+
 
 
 # Define the final probability function as likelihood * prior ('+' due to log).
@@ -128,6 +153,8 @@ def log_posterior(theta, t, y, yerr, params, model, priors, transform, use_jeffr
     #    return -np.inf
     # print('not inf')
     return lp + log_likelihood(theta, t, y, yerr, params, model, transform)
+
+
 
 def run_mcmc(time_data, flux_data, error_data, model,
              model_params, priors, mcmc, param_names,
@@ -160,6 +187,8 @@ def run_mcmc(time_data, flux_data, error_data, model,
             pos[:, i] = np.random.uniform(priors[param][1], priors[param][2], mcmc['nwalkers'])
         elif priors[param][0]=='gauss':
             pos[:, i] = np.random.normal(priors[param][1], priors[param][2], mcmc['nwalkers'])
+        elif priors[param][0]=='jeffrey':
+            pos[:, i] = np.random.uniform(priors[param][1], priors[param][2], mcmc['nwalkers'])
         else:
             print('prior not recognized')
             break
@@ -195,16 +224,23 @@ def run_mcmc(time_data, flux_data, error_data, model,
 
     return flattened_samples, samples
 
-def create_corner_plot(posterior_samples, truths, errval, transform=False):
+def create_corner_plot(posterior_samples, truths, errval, transform=False, use_jeffrey=False):
     """
     Plotand save the corner plot of the posterior samples, showing the underlying truth values
     """
+    if transform:
+        param1 = r"$q_1$"
+        param2 = r"$q_2$"
+    else:
+        param1 = r"$u_1$"
+        param2 = r"$u_2$"
+
     fig = corner.corner(
         posterior_samples, 
         title_fmt='.5f',
         bins=50,
         show_titles=True,
-        labels=[r"$P_S$", r"$u_1$", r"$u_2$"], 
+        labels=[r"$R_P/R_*$", param1, param2], 
         truths=[truths['ps'], truths['u'][0], truths['u'][1]],
         plot_density=True,
         plot_datapoints=True,
@@ -213,12 +249,19 @@ def create_corner_plot(posterior_samples, truths, errval, transform=False):
         levels=(0.6827, 0.90, 0.9545),              # shows the 1, 1.5 and 2 sigma contours in the 2D plots
         quantiles=[0.16, 0.5, 0.84],                # shows the 1 sigma interval in the 1D plots
         title_kwargs={"fontsize": 10},
-        truth_color='cornflowerblue',
+        truth_color='darkgreen',
+        color='red'
     )
     if transform:
-        corner_plot_name = "outputs/plots/corner_plot_kipping_%.0fppm_no_linear_model" % (errval)
+        if use_jeffrey:
+            corner_plot_name = "outputs/plots/corner_plot_kipping_%.0fppm_jeffrey_model" % (errval)
+        else:
+            corner_plot_name = "outputs/plots/corner_plot_kipping_%.0fppm_model" % (errval)
     else:
-        corner_plot_name = "outputs/plots/corner_plot_quadratic_%.0fppm_no_linear_model" % (errval)
+        if use_jeffrey:
+            corner_plot_name = "outputs/plots/corner_plot_quadratic_%.0fppm_jeffrey_model" % (errval)
+        else:
+            corner_plot_name = "outputs/plots/corner_plot_quadratic_%.0fppm_model" % (errval)
 
     if not os.path.exists(corner_plot_name):
         fig.savefig(corner_plot_name, dpi=300)
