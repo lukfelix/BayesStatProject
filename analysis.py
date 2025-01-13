@@ -181,7 +181,7 @@ def run_parametrisation(parametrisation, param_priors, truths, param_names, use_
 ################################################################################
 ######################### Run Quadratic Limb-Darkening ##########################
 ################################################################################
-param_names = ['ps', 'u1', 'u2']
+param_names = [r"$R_P/R_*$", 'u1', 'u2']
 
 param_priors = {
     # TODO: adapt these depending on simdata
@@ -191,7 +191,7 @@ param_priors = {
 }
 truths = {
     'ps':0.1,                        # planet-to-star radius ratio = planet radius (in units of stellar radii)
-    'u':[0.05, 0.05]                       # limb-darkening coefficients: u1, u2
+    'u':[0.0, 0.0]                       # limb-darkening coefficients: u1, u2
 }
 use_jeffrey = False
 
@@ -201,7 +201,7 @@ run_parametrisation("quadratic", param_priors, truths, param_names, use_jeffrey)
 ################################################################################
 ############### Run Quadratic Limb-Darkening, Jeffrey Priors ###################
 ################################################################################
-param_names = ['ps', 'u1', 'u2']
+param_names = [r"$R_P/R_*$", 'u1', 'u2']
 
 param_priors = {
     # TODO: adapt these depending on simdata
@@ -227,8 +227,7 @@ run_parametrisation("quadratic", param_priors, truths, param_names, use_jeffrey)
 ################################################################################
 ######################### Run Kipping Limb-Darkening ############################
 ################################################################################
-
-param_names = ['ps', 'q1', 'q2']
+param_names = [r"$R_P/R_*$", 'u1', 'u2']
 
 # update priors and ground truth to Kipping
 param_priors = {
@@ -252,16 +251,7 @@ run_parametrisation("kipping", param_priors, truths, param_names, use_jeffrey)
 ##################### Run Kipping Limb-Darkening Jeffrey #######################
 ################################################################################
 
-
-mcmc_params = {
-    'ndim'        :len(param_priors),
-    'nwalkers'    :4*len(param_priors),
-    'nsteps'      :50000,
-    'burn_in_frac':0.6,
-}
-
-
-param_names = ['ps', 'q1', 'q2']
+param_names = [r"$R_P/R_*$", 'u1', 'u2']
 
 # update priors and ground truth to Kipping
 param_priors = {
