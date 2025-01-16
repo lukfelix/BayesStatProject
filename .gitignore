@@ -5,6 +5,8 @@ outputs/plots/*.jpg
 # not saving samples as the files get >10 MB, which unnecessarily slows download speed when cloning
 outputs/samples/*
 
+# not saving intermediate results as the files are too large
+max_outputs/data/no_sync/*
 __pycache__/
 
 myenv/
